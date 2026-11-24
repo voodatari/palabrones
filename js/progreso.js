@@ -2,7 +2,7 @@
 // clase de palabra, logros, misiones del día, racha de días, repaso de fallos e historial.
 // Se guarda en el navegador (localStorage) con versión y copia de seguridad.
 
-import { MUNDOS, claveNivel, TIENDA } from './datos.js?v=1.1.4';
+import { MUNDOS, claveNivel, TIENDA } from './datos.js?v=1.1.5';
 
 const CLAVE = 'palabrones.partida';
 const VERSION = 1;

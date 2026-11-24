@@ -2,7 +2,7 @@
 // Personajes, monstruos y decorado son modelos GLB de Quaternius (CC0), en web/modelos.
 // El estado del juego vive en juego.js; aquí solo se dibuja (las mallas son una «vista»).
 
-import * as THREE from './lib/three.module.js?v=1.1.4';
+import * as THREE from './lib/three.module.js?v=1.1.5';
 import { GLTFLoader } from './lib/addons/loaders/GLTFLoader.js';
 import { clone as clonarEsqueleto } from './lib/addons/utils/SkeletonUtils.js';
 import { RoomEnvironment } from './lib/addons/environments/RoomEnvironment.js';
@@ -244,7 +244,7 @@ const MODELOS = new Map();
 const ALTURAS = new Map();
 export function cargar(nombre) {
   if (!MODELOS.has(nombre)) {
-    MODELOS.set(nombre, new Promise((ok, mal) => cargador.load(`modelos/${nombre}.glb?v=1.1.4`, ok, undefined, mal)).catch((e) => { console.warn('modelo', nombre, e); return null; }));
+    MODELOS.set(nombre, new Promise((ok, mal) => cargador.load(`modelos/${nombre}.glb?v=1.1.5`, ok, undefined, mal)).catch((e) => { console.warn('modelo', nombre, e); return null; }));
   }
   return MODELOS.get(nombre);
 }
@@ -678,12 +678,13 @@ function crearHeroe() {
   aura.rotation.x = -Math.PI / 2; aura.position.y = 0.05; aura.userData.sinAO = true; grupo.add(aura);
   const orbe = new THREE.Mesh(new THREE.IcosahedronGeometry(0.12, 1), new THREE.MeshBasicMaterial({ color: '#ffe066' }));
   const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: texBrillo, color: '#ffe066', transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); halo.scale.setScalar(0.9);
-  const sombreroSitio = new THREE.Group(), vara = new THREE.Group(), planoPelo = new THREE.Plane();
+  const sombreroSitio = new THREE.Group(), vara = new THREE.Group(), planoPelo = new THREE.Plane(), planoPelo2 = new THREE.Plane();
   const mascotaSitio = new THREE.Group(); grupo.add(mascotaSitio);
   grupo.position.set(0, 0, 1.6);
-  return { grupo, cuerpo, aura, orbe, halo, sombreroSitio, vara, planoPelo, mascotaSitio, sombra, lanzar: 0, herido: 0, salto: 0, triste: 0, rotObj: 0, aspecto: null, mascota: null, modelo: null, actual: null };
+  return { grupo, cuerpo, aura, orbe, halo, sombreroSitio, vara, planoPelo, planoPelo2, mascotaSitio, sombra, lanzar: 0, herido: 0, salto: 0, triste: 0, rotObj: 0, aspecto: null, mascota: null, modelo: null, actual: null };
 }
 
+let INCLINA_PELO = 0.1, ALTURA_PELO = -0.02; // INCLINA_PELO: hasta dónde (hacia delante) se recorta el pelo
 function montarHeroe() {
   const h = E.heroe;
   if (h.modelo) return;
@@ -726,7 +727,7 @@ function ponerSombrero() {
   h.sombreroSitio.clear();
   h.sombreroSitio.add(SOMBREROS[id](h.colorAura || '#7c3aed'));
   // Con el sombrero de mago (que baja hasta las cejas) el pelo que queda por encima del ala se recorta: así no atraviesa el cono.
-  if (h.pelo) { h.pelo.clippingPlanes = mago ? [h.planoPelo] : null; h.pelo.needsUpdate = true; }
+  if (h.pelo) { h.pelo.clippingPlanes = mago ? [h.planoPelo, h.planoPelo2] : null; h.pelo.clipIntersection = true; h.pelo.needsUpdate = true; }
   h.sombreroSitio.position.set(0, (mago ? 0.6 : 0.9) / e, 0.02 / e);
   h.sombreroSitio.scale.setScalar((mago ? 1.3 : 1.0) / e);
 }
@@ -974,8 +975,13 @@ function actualizar(dt, real) {
     h.mixer.update(dt);
     if (h.pelo && h.pelo.clippingPlanes) {
       h.sombreroSitio.updateWorldMatrix(true, false);
-      const arriba = new THREE.Vector3(0, 1, 0).applyQuaternion(h.sombreroSitio.getWorldQuaternion(new THREE.Quaternion()));
-      h.planoPelo.setFromNormalAndCoplanarPoint(arriba.clone().negate(), h.sombreroSitio.getWorldPosition(new THREE.Vector3()).addScaledVector(arriba, -0.03));
+      // Se ve el pelo que cae por debajo del ala (plano A) y todo el de la mitad delantera (plano B, el flequillo);
+      // solo se recorta el que sobresale por encima del ala en la parte de atrás, donde atravesaba el cono.
+      const q = h.sombreroSitio.getWorldQuaternion(new THREE.Quaternion());
+      const arriba = new THREE.Vector3(0, 1, 0).applyQuaternion(q), delante = new THREE.Vector3(0, 0, 1).applyQuaternion(q);
+      const o = h.sombreroSitio.getWorldPosition(new THREE.Vector3());
+      h.planoPelo.setFromNormalAndCoplanarPoint(arriba.clone().negate(), o.clone().addScaledVector(arriba, ALTURA_PELO));
+      h.planoPelo2.setFromNormalAndCoplanarPoint(delante, o.addScaledVector(delante, INCLINA_PELO));
     }
   }
   h.aura.rotation.z += real * 0.8; h.aura.material.opacity = 0.35 + Math.sin(t * 3) * 0.15 + (E.frenesi ? 0.3 : 0);

@@ -1,5 +1,9 @@
 # Cambios de ¡Palabrones!
 
+## v1.1.5 · 2026-11-24 · Pelo y sombrero de Lumi
+
+- El pelo de Lumi ya no atraviesa el sombrero de mago por detrás ni deja una franja blanca bajo el ala por delante.
+
 ## v1.1.4 · 2026-11-24 · Lumi, aprendiz de mago animado
 
 - Lumi vuelve a ser un modelo con animaciones de verdad (esqueleto completo): corre, lanza el hechizo con la
