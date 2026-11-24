@@ -1,5 +1,16 @@
 # Cambios de ¡Palabrones!
 
+## v1.1.13 · 2026-11-24 · Look retro mucho más rápido en el móvil
+
+- En el móvil y la tablet el dibujo 3D se hace solo a la resolución retro (unas 9-16 veces menos píxeles que antes) y el
+  navegador lo amplía con píxeles nítidos. Las líneas de barrido van en una capa fija que se pinta una sola vez por
+  tamaño de pantalla, y el suavizado de bordes es el del propio navegador a baja resolución (casi gratis). Antes el
+  lienzo se ponía a la resolución completa de la pantalla con suavizado MSAA, lo que hundía el rendimiento.
+- Corregidas las «esferas blancas» que avanzaban hacia la cámara con el look retro: las partículas del ambiente
+  (luciérnagas, nieve, arena…) se dibujaban varias veces más grandes de lo debido.
+- En el ordenador se mantiene el pase a resolución completa (líneas y franjas RGB exactas); las partículas del ambiente
+  también tienen ya su tamaño correcto.
+
 ## v1.1.12 · 2026-11-24 · Look retro en el móvil
 
 - El look retro dejaba de funcionar en muchos móviles (solo cambiaba el color del cielo y bajaba mucho el rendimiento):

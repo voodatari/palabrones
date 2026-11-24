@@ -23,6 +23,8 @@ kbd { font-family: var(--fuente); font-weight: 700; font-size: 0.72em; backgroun
 .tS { color: var(--S-claro); } .tA { color: var(--A-claro); } .tV { color: var(--V-claro); }
 
 #c3d { position: fixed; inset: 0; width: 100%; height: var(--alto, 100%); display: block; z-index: 0; }
+/* Look retro en el móvil: el lienzo 3D es pequeño y el navegador lo amplía con píxeles nítidos. */
+#c3d.pixelado { image-rendering: crisp-edges; image-rendering: pixelated; }
 #peligro { position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: 0; background: radial-gradient(ellipse at 50% 55%, transparent 32%, rgba(200, 10, 30, 0.45) 70%, rgba(150, 0, 20, 0.85) 100%); transition: opacity 0.25s; }
 #peligro.late { animation: lateRojo 0.8s ease-in-out infinite; }
 @keyframes lateRojo { 50% { filter: brightness(1.6); } }
