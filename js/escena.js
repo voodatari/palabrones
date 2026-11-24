@@ -2,7 +2,7 @@
 // Personajes, monstruos y decorado son modelos GLB de Quaternius (CC0), en web/modelos.
 // El estado del juego vive en juego.js; aquí solo se dibuja (las mallas son una «vista»).
 
-import * as THREE from './lib/three.module.js?v=1.1.17';
+import * as THREE from './lib/three.module.js?v=1.1.18';
 import { GLTFLoader } from './lib/addons/loaders/GLTFLoader.js';
 import { clone as clonarEsqueleto } from './lib/addons/utils/SkeletonUtils.js';
 import { mergeGeometries } from './lib/addons/utils/BufferGeometryUtils.js';
@@ -246,7 +246,7 @@ const MODELOS = new Map();
 const ALTURAS = new Map();
 export function cargar(nombre) {
   if (!MODELOS.has(nombre)) {
-    MODELOS.set(nombre, new Promise((ok, mal) => cargador.load(`modelos/${nombre}.glb?v=1.1.17`, ok, undefined, mal)).catch((e) => { console.warn('modelo', nombre, e); return null; }));
+    MODELOS.set(nombre, new Promise((ok, mal) => cargador.load(`modelos/${nombre}.glb?v=1.1.18`, ok, undefined, mal)).catch((e) => { console.warn('modelo', nombre, e); return null; }));
   }
   return MODELOS.get(nombre);
 }
@@ -1195,13 +1195,40 @@ function destinoPos(destino) {
   return null;
 }
 export function heroeHerido() {
-  const h = E.heroe; h.herido = 0.5; temblor(0.55);
+  const h = E.heroe; if (h.caido) return;
+  h.herido = 0.5; temblor(0.55);
   if (h.acc) h.actual = reproducir(h.acc.golpe, h.actual, 0.06, true);
   emitir(h.grupo.position.clone().add(new THREE.Vector3(0, 1.2, 0)), 24, '#ff4d6d', { vel: 4, vida: 0.6, tam: 0.45 });
 }
 export function heroeSalta() { E.heroe.salto = 0.6; }
 export function celebrar() { const h = E.heroe; h.salto = 2.4; E.confeti = 2.2; if (h.acc) h.actual = reproducir(h.acc.victoria, h.actual, 0.15, true); }
-export function entristecer() { const h = E.heroe; h.triste = 2.5; if (h.acc) h.actual = reproducir(h.acc.triste, h.actual, 0.2, true); }
+// Sin vidas, Lumi cae UNA vez y se queda en el suelo (aunque se cambie de pantalla) hasta que se la levanta con levantar().
+export function entristecer() {
+  const h = E.heroe; if (h.caido) return;
+  h.caido = true; h.triste = 2.5;
+  if (h.acc) h.actual = reproducir(h.acc.triste, h.actual, 0.2, true);
+}
+// Levanta a Lumi (la caída al revés) y, cuando ya está de pie, llama a alTerminar. Con rapido = true se levanta de golpe.
+export function levantar(alTerminar, rapido = false) {
+  const h = E.heroe, acc = h.acc && h.acc.triste;
+  if (h.levantando) return;
+  if (!h.caido || !acc || rapido) {
+    const estabaCaida = h.caido; h.caido = false; h.triste = 0;
+    if (estabaCaida && h.acc) h.actual = reproducir(h.acc.quieto, h.actual, 0.1);
+    if (alTerminar) alTerminar();
+    return;
+  }
+  h.levantando = true;
+  const dur = acc.getClip().duration;
+  acc.reset(); acc.setLoop(THREE.LoopOnce, 1); acc.clampWhenFinished = true; acc.enabled = true; acc.setEffectiveWeight(1);
+  acc.time = dur; acc.setEffectiveTimeScale(-1); acc.play();
+  h.actual = acc;
+  setTimeout(() => {
+    h.caido = false; h.levantando = false; h.triste = 0;
+    h.actual = reproducir(h.acc.quieto, acc, 0.15);
+    if (alTerminar) alTerminar();
+  }, dur * 1000 + 150);
+}
 export function congelar(si) {
   E.congelado = si;
   if (si) for (const m of E.monstruos.values()) emitir(m.g.position.clone().add(new THREE.Vector3(0, 1, 0)), 14, '#a5f3fc', { vel: 2.5, vida: 0.9, tam: 0.45, grav: 0.5 });
@@ -1304,7 +1331,7 @@ function actualizar(dt, real) {
   if (h.mixer) {
     // Fuera de los gestos de una vez (hechizo, golpe, victoria), corre si el mundo avanza o descansa.
     const enGesto = h.actual && h.actual.loop === THREE.LoopOnce && h.actual.isRunning();
-    if (!enGesto && h.triste <= 0) {
+    if (!enGesto && h.triste <= 0 && !h.caido) {
       const base = E.velAvance > 0.4 ? h.acc.correr : h.acc.quieto;
       if (h.actual !== base) h.actual = reproducir(base, h.actual, 0.25);
     }

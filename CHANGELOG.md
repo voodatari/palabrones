@@ -1,5 +1,13 @@
 # Cambios de ¡Palabrones!
 
+## v1.1.18 · 2026-11-24 · Lumi se queda en el suelo y el objetivo no cambia de golpe
+
+- Al perder todas las vidas, Lumi cae una sola vez y se queda en el suelo mientras se ven los resultados (antes volvía a caer al
+  mostrarse el resultado y se levantaba sola). Al pulsar «Repetir» se levanta (la caída al revés) y, cuando ya está de pie, empieza
+  la partida; al salir al menú se levanta también.
+- La palabra a acertar ya no cambia de golpe sin haberla contestado: cada Palabrón nuevo sale siempre por detrás de los que ya
+  están (antes uno veloz podía aparecer más cerca que el objetivo) y el objetivo se mantiene hasta que se contesta o llega a Lumi.
+
 ## v1.1.17 · 2026-11-24 · Cámara de los jefes cada 2 preguntas
 
 - La cámara panorámica de los jefes (solo ordenador) cambia de punto de vista cada 2 preguntas en vez de en cada una.

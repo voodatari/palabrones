@@ -1,10 +1,10 @@
 // ¡Palabrones! · Lógica de partida: niveles normales, jefes, desafío infinito y entrenamiento.
 // El estado vive aquí (objetos planos); escena.js solo lo dibuja.
 
-import * as E from './escena.js?v=1.1.17';
-import { PALABRAS, FRASES, CATS, MUNDOS, explicarSuelta, explicarEnFrase } from './datos.js?v=1.1.17';
-import * as Pr from './progreso.js?v=1.1.17';
-import { sfx, musica, intensidad } from './audio.js?v=1.1.17';
+import * as E from './escena.js?v=1.1.18';
+import { PALABRAS, FRASES, CATS, MUNDOS, explicarSuelta, explicarEnFrase } from './datos.js?v=1.1.18';
+import * as Pr from './progreso.js?v=1.1.18';
+import { sfx, musica, intensidad } from './audio.js?v=1.1.18';
 
 const CARRILES = [-2.3, 0, 2.3];
 const Z_SALIDA = -27, Z_LLEGADA = -2.2;
@@ -293,12 +293,18 @@ function salir() {
   const extra = 1 + (J.oleada - 1) * (J.modo === 'desafio' ? 0.08 : 0.13);
   const tiempo = DISTANCIA_DISENO / (J.st.vel * extra * J.lento * mult);
   const distancia = Math.min(46, Math.max(18, (sueloAhora() + paso) * tiempo));
-  const m = { id: sigId++, it, x: CARRILES[carril], z: Z_LLEGADA - distancia, vivo: true, pendiente: false, variante, mult, paso, rugio: false };
+  // Siempre sale por detrás de todos los que ya están: así la palabra a acertar no cambia de golpe porque aparezca uno más cerca.
+  let zSalida = Z_LLEGADA - distancia;
+  for (const o of J.monstruos) if (o.vivo) zSalida = Math.min(zSalida, o.z - SEPARACION);
+  const m = { id: sigId++, it, x: CARRILES[carril], z: zSalida, vivo: true, pendiente: false, variante, mult, paso, rugio: false };
   J.monstruos.push(m);
   E.nuevoMonstruo(m.id, it.texto, m.x, m.z, m.id * 7 + J.mundo * 101, variante);
 }
 
 function elegirObjetivo() {
+  // El objetivo no cambia mientras siga ahí y sin contestar: solo pasa al siguiente cuando se responde o llega a Lumi.
+  const actual = J.monstruos.find((x) => x.id === J.objetivoId);
+  if (actual && actual.vivo && !actual.pendiente) return;
   let mejor = null;
   for (const m of J.monstruos) if (m.vivo && !m.pendiente && (!mejor || m.z > mejor.z)) mejor = m;
   const id = mejor ? mejor.id : null;

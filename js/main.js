@@ -1,11 +1,11 @@
 // ¡Palabrones! · Interfaz: pantallas, menús, HUD, explicaciones, resultados y teclado.
-import * as E from './escena.js?v=1.1.17';
-import { J, empezar, lanzar, congelar, pausar, abandonar } from './juego.js?v=1.1.17';
-import * as Pr from './progreso.js?v=1.1.17';
-import { CATS, TRUCOS, MUNDOS, TIENDA, AVATARES, claveNivel } from './datos.js?v=1.1.17';
-import { iniciarAudio, musica, volumenes, sfx, precargarMusica } from './audio.js?v=1.1.17';
-import { decir, callar, activarVoz, desbloquearVoz } from './voz.js?v=1.1.17';
-import { dibujar as dibujarEtiquetas, limpiar as limpiarEtiquetas } from './etiquetas.js?v=1.1.17';
+import * as E from './escena.js?v=1.1.18';
+import { J, empezar, lanzar, congelar, pausar, abandonar } from './juego.js?v=1.1.18';
+import * as Pr from './progreso.js?v=1.1.18';
+import { CATS, TRUCOS, MUNDOS, TIENDA, AVATARES, claveNivel } from './datos.js?v=1.1.18';
+import { iniciarAudio, musica, volumenes, sfx, precargarMusica } from './audio.js?v=1.1.18';
+import { decir, callar, activarVoz, desbloquearVoz } from './voz.js?v=1.1.18';
+import { dibujar as dibujarEtiquetas, limpiar as limpiarEtiquetas } from './etiquetas.js?v=1.1.18';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -303,6 +303,7 @@ async function jugar(cfg) {
   limpiarBanner(); limpiarEtiquetas();
   await asegurarTema(cfg.modo === 'campana' ? MUNDOS[cfg.mundo].tema : cfg.modo === 'desafio' ? 'castillo' : 'pradera');
   restaurarAspecto();
+  E.levantar(null, true); // por si Lumi seguía en el suelo de una partida anterior
   mostrar('p-juego');
   $('#hud-jefe').classList.toggle('oculto', !(cfg.modo === 'campana' && MUNDOS[cfg.mundo].niveles[cfg.nivel].tipo === 'jefe'));
   $('#hud-objetivo').classList.add('vacio');
@@ -471,8 +472,9 @@ function mostrarResultado(r) {
   for (const e of r.eventos) encolarEvento(e);
   requestAnimationFrame(ajustarTodo);
 }
-$('#res-menu').addEventListener('click', () => { sfx.click(); irA('p-inicio'); });
-$('#res-repetir').addEventListener('click', () => { sfx.click(); jugar(ultimaCfg); });
+$('#res-menu').addEventListener('click', () => { sfx.click(); E.levantar(); irA('p-inicio'); });
+// Si Lumi está en el suelo, primero se levanta y, cuando está de pie, empieza la partida.
+$('#res-repetir').addEventListener('click', () => { sfx.click(); E.levantar(() => jugar(ultimaCfg)); });
 $('#res-seguir').addEventListener('click', () => {
   sfx.click();
   const g = ultimaCfg.mundo * 4 + ultimaCfg.nivel + 1;
