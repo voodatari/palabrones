@@ -3,6 +3,7 @@
 ## v1.1.2 · 2026-11-24 · Cambios menores
 
 - Cambios menores.
+- README con el enlace al juego jugable, modos, contenido y créditos.
 
 ## v1.1.1 · 2026-11-24 · Música sin cortes al empezar
 
