@@ -1,5 +1,9 @@
 # Cambios de ¡Palabrones!
 
+## v1.1.17 · 2026-11-24 · Cámara de los jefes cada 2 preguntas
+
+- La cámara panorámica de los jefes (solo ordenador) cambia de punto de vista cada 2 preguntas en vez de en cada una.
+
 ## v1.1.16 · 2026-11-24 · Jefes enormes, cámaras panorámicas y sin adelantamientos
 
 - Jefes finales mucho más grandes (se pueden salir del ancho del camino). La cámara se encuadra sola para que su cabeza

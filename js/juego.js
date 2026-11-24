@@ -1,10 +1,10 @@
 // ¡Palabrones! · Lógica de partida: niveles normales, jefes, desafío infinito y entrenamiento.
 // El estado vive aquí (objetos planos); escena.js solo lo dibuja.
 
-import * as E from './escena.js?v=1.1.16';
-import { PALABRAS, FRASES, CATS, MUNDOS, explicarSuelta, explicarEnFrase } from './datos.js?v=1.1.16';
-import * as Pr from './progreso.js?v=1.1.16';
-import { sfx, musica, intensidad } from './audio.js?v=1.1.16';
+import * as E from './escena.js?v=1.1.17';
+import { PALABRAS, FRASES, CATS, MUNDOS, explicarSuelta, explicarEnFrase } from './datos.js?v=1.1.17';
+import * as Pr from './progreso.js?v=1.1.17';
+import { sfx, musica, intensidad } from './audio.js?v=1.1.17';
 
 const CARRILES = [-2.3, 0, 2.3];
 const Z_SALIDA = -27, Z_LLEGADA = -2.2;
@@ -415,7 +415,8 @@ function siguienteObjetivoJefe() {
   if (!j || J.terminado) return;
   if (!j.objetivos.length) return;
   j.actual = j.objetivos.shift();
-  if (j.preguntas) E.siguienteVistaJefe(); // en ordenador, cada pregunta del jefe se ve desde otra cámara
+  // En ordenador, el jefe se ve desde otra cámara cada 2 preguntas (la 3.ª, la 5.ª…).
+  if (j.preguntas && j.preguntas % 2 === 0) E.siguienteVistaJefe();
   j.preguntas = (j.preguntas || 0) + 1;
   j.resto = j.tiempo;
   const f = FRASES[j.actual.fi], tok = f.tokens[j.actual.ti];
