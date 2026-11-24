@@ -1,5 +1,21 @@
 # Cambios de ¡Palabrones!
 
+## v1.1.14 · 2026-11-24 · Look retro en iPhone y menos trabajo por fotograma
+
+- Look retro en iPhone y iPad: Safari no respeta el escalado «pixelado» en los lienzos WebGL y emborronaba la imagen,
+  así que el efecto no se veía. Ahora la ampliación la hace siempre el propio juego a la resolución real de la pantalla,
+  con un lienzo sin suavizado ni profundidad propios (lo que hace barato ese pase). Por eso activar o quitar el look
+  retro recarga el juego.
+- En móvil y tablet el píxel retro es más grande (unas 240 líneas en el lado corto; 2 px web en un iPhone), con líneas
+  de barrido y franjas RGB visibles, como en el ordenador.
+- Menos llamadas de dibujo (en el móvil, en la pradera, de ~285 a ~140 por fotograma): las piedras del bordillo,
+  árboles, rocas y arbustos se dibujan con mallas instanciadas (una por modelo); las piezas fijas del fondo se funden
+  por material y cada nube es una sola malla.
+- Los efectos de la partida (proyectiles, halos, ondas y monedas) se preparan al cargar el mundo, para que no den un
+  tirón la primera vez que aparecen.
+- Medidor de rendimiento opcional: añadiendo `?fps` a la dirección se ven los fotogramas por segundo y el peor
+  fotograma de cada segundo.
+
 ## v1.1.13 · 2026-11-24 · Look retro mucho más rápido en el móvil
 
 - En el móvil y la tablet el dibujo 3D se hace solo a la resolución retro (unas 9-16 veces menos píxeles que antes) y el

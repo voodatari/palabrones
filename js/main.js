@@ -1,11 +1,11 @@
 // ¡Palabrones! · Interfaz: pantallas, menús, HUD, explicaciones, resultados y teclado.
-import * as E from './escena.js?v=1.1.13';
-import { J, empezar, lanzar, congelar, pausar, abandonar } from './juego.js?v=1.1.13';
-import * as Pr from './progreso.js?v=1.1.13';
-import { CATS, TRUCOS, MUNDOS, TIENDA, AVATARES, claveNivel } from './datos.js?v=1.1.13';
-import { iniciarAudio, musica, volumenes, sfx, precargarMusica } from './audio.js?v=1.1.13';
-import { decir, callar, activarVoz, desbloquearVoz } from './voz.js?v=1.1.13';
-import { dibujar as dibujarEtiquetas, limpiar as limpiarEtiquetas } from './etiquetas.js?v=1.1.13';
+import * as E from './escena.js?v=1.1.14';
+import { J, empezar, lanzar, congelar, pausar, abandonar } from './juego.js?v=1.1.14';
+import * as Pr from './progreso.js?v=1.1.14';
+import { CATS, TRUCOS, MUNDOS, TIENDA, AVATARES, claveNivel } from './datos.js?v=1.1.14';
+import { iniciarAudio, musica, volumenes, sfx, precargarMusica } from './audio.js?v=1.1.14';
+import { decir, callar, activarVoz, desbloquearVoz } from './voz.js?v=1.1.14';
+import { dibujar as dibujarEtiquetas, limpiar as limpiarEtiquetas } from './etiquetas.js?v=1.1.14';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -87,9 +87,23 @@ function calidad() {
 
 let listo3D = false;
 try {
-  E.iniciar($('#c3d'), calidad());
-  E.default.alFalloRetro = () => { Pr.ajustes().retro = false; Pr.guardar(); const c = $('#o-retro'); if (c) { c.checked = false; c.disabled = true; } };
+  E.iniciar($('#c3d'), calidad(), !!Pr.ajustes().retro);
+  // Si el dispositivo no puede dibujar el look retro, se apaga y se recarga (el lienzo se crea distinto con él).
+  E.default.alFalloRetro = () => { Pr.ajustes().retro = false; Pr.guardar(); location.reload(); };
   E.retro(!!Pr.ajustes().retro);
+  // Medidor de rendimiento opcional: añadir «?fps» a la dirección (fotogramas por segundo y el peor fotograma).
+  if (/[?&]fps\b/.test(location.search)) {
+    const d = document.createElement('div');
+    d.style.cssText = 'position:fixed;left:4px;bottom:4px;z-index:9999;font:12px/1.3 monospace;background:rgba(0,0,0,.65);color:#7CFC00;padding:2px 6px;border-radius:4px;pointer-events:none';
+    document.body.appendChild(d);
+    let n = 0, t0 = performance.now(), ult = t0, peor = 0;
+    const medir = () => {
+      const a = performance.now(); peor = Math.max(peor, a - ult); ult = a; n++;
+      if (a - t0 >= 1000) { const c = E.default.renderer.domElement; d.textContent = `${Math.round(n * 1000 / (a - t0))} fps · peor ${peor.toFixed(0)} ms · ${c.width}×${c.height}${E.default.retro ? ' · retro' : ''}`; n = 0; t0 = a; peor = 0; }
+      requestAnimationFrame(medir);
+    };
+    requestAnimationFrame(medir);
+  }
   E.default.alDibujar = dibujarEtiquetas;
   E.aspectoHeroe({ color: 'violeta', sombrero: 'mago', mascota: 'ninguna' }, '#a78bfa');
   E.vista('titulo', true);
@@ -641,7 +655,8 @@ function pintarOpciones() {
 $('#o-musica').addEventListener('input', (e) => { Pr.ajustes().musica = +e.target.value; volumenes(Pr.ajustes().musica, Pr.ajustes().efectos); Pr.guardar(); });
 $('#o-efectos').addEventListener('input', (e) => { Pr.ajustes().efectos = +e.target.value; volumenes(Pr.ajustes().musica, Pr.ajustes().efectos); Pr.guardar(); });
 $('#o-efectos').addEventListener('change', () => sfx.acierto(3));
-$('#o-retro').addEventListener('change', (e) => { Pr.ajustes().retro = e.target.checked; E.retro(e.target.checked); Pr.guardar(); });
+// El look retro cambia cómo se crea el lienzo 3D: se aplica recargando (como la calidad).
+$('#o-retro').addEventListener('change', (e) => { Pr.ajustes().retro = e.target.checked; Pr.guardar(); location.reload(); });
 $('#o-voz').addEventListener('change', (e) => { Pr.ajustes().voz = e.target.checked; activarVoz(e.target.checked); Pr.guardar(); if (e.target.checked) decir('Hola. Así sonará la voz que explica.'); });
 function textoVelocidad(v) {
   const n = v <= 0.75 ? 'Tranquila' : v < 0.95 ? 'Suave' : v <= 1.05 ? 'Normal' : v <= 1.3 ? 'Rápida' : 'Trepidante';
