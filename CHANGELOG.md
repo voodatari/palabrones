@@ -1,5 +1,10 @@
 # Cambios de ¡Palabrones!
 
+## v1.1.8 · 2026-11-24 · Bordes suaves
+
+- Con gráficos «Bonitos» se añade antialiasing FXAA (muy barato para la tarjeta gráfica): desaparecen los dientes de
+  sierra en los bordes. Con «Ligeros» se mantiene el antialiasing de hardware de siempre y con el look retro no se aplica.
+
 ## v1.1.7 · 2026-11-24 · Colores sin mapa de tonos
 
 - Se quita el mapa de tonos (ACES) del dibujo 3D: los colores salen más intensos y con más contraste.

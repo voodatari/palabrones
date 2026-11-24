@@ -2,7 +2,7 @@
 // Personajes, monstruos y decorado son modelos GLB de Quaternius (CC0), en web/modelos.
 // El estado del juego vive en juego.js; aquí solo se dibuja (las mallas son una «vista»).
 
-import * as THREE from './lib/three.module.js?v=1.1.7';
+import * as THREE from './lib/three.module.js?v=1.1.8';
 import { GLTFLoader } from './lib/addons/loaders/GLTFLoader.js';
 import { clone as clonarEsqueleto } from './lib/addons/utils/SkeletonUtils.js';
 import { RoomEnvironment } from './lib/addons/environments/RoomEnvironment.js';
@@ -11,6 +11,8 @@ import { RenderPass } from './lib/addons/postprocessing/RenderPass.js';
 import { GTAOPass } from './lib/addons/postprocessing/GTAOPass.js';
 import { UnrealBloomPass } from './lib/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from './lib/addons/postprocessing/OutputPass.js';
+import { ShaderPass } from './lib/addons/postprocessing/ShaderPass.js';
+import { FXAAShader } from './lib/addons/shaders/FXAAShader.js';
 
 const E = {
   renderer: null, escena: null, camara: null, reloj: 0, pausaGolpeHasta: 0,
@@ -244,7 +246,7 @@ const MODELOS = new Map();
 const ALTURAS = new Map();
 export function cargar(nombre) {
   if (!MODELOS.has(nombre)) {
-    MODELOS.set(nombre, new Promise((ok, mal) => cargador.load(`modelos/${nombre}.glb?v=1.1.7`, ok, undefined, mal)).catch((e) => { console.warn('modelo', nombre, e); return null; }));
+    MODELOS.set(nombre, new Promise((ok, mal) => cargador.load(`modelos/${nombre}.glb?v=1.1.8`, ok, undefined, mal)).catch((e) => { console.warn('modelo', nombre, e); return null; }));
   }
   return MODELOS.get(nombre);
 }
@@ -390,6 +392,9 @@ export function iniciar(canvas, calidad) {
     const brillo = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.22, 0.4, 1.15);
     comp.addPass(brillo);
     comp.addPass(new OutputPass());
+    // Antialiasing FXAA (casi sin coste): se aplica sobre la imagen final, ya con su color definitivo.
+    E.fxaa = new ShaderPass(FXAAShader);
+    comp.addPass(E.fxaa);
     E.compositor = comp; E.ao = ao;
   }
   window.addEventListener('resize', ajustarTamano);
@@ -492,10 +497,12 @@ function ajustarTamano() {
     const pix = w < 700 || h < 480 ? 2 : Math.max(2, Math.round(h / RETRO_LINEAS)); // móvil: píxeles de 2 px (más resolución)
     RETRO.w = Math.max(2, Math.round(w / pix)); RETRO.h = Math.max(2, Math.round(h / pix));
     comp.setPixelRatio(1); comp.setSize(RETRO.w, RETRO.h);
+    if (E.fxaa) E.fxaa.enabled = false; // el pixelado no debe suavizarse
     RETRO.uni.baja.value.set(RETRO.w, RETRO.h);
     if (P.puntos) P.puntos.material.uniforms.escalaPx.value = RETRO.h * 0.55;
   } else {
     if (comp) { comp.setPixelRatio(pr); comp.setSize(w, h); }
+    if (E.fxaa) { E.fxaa.enabled = true; E.fxaa.material.uniforms.resolution.value.set(1 / (w * pr), 1 / (h * pr)); }
     if (P.puntos) P.puntos.material.uniforms.escalaPx.value = h * 0.55 * pr;
   }
   E.vertical = asp < 0.9;
