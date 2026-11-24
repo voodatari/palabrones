@@ -1,11 +1,11 @@
 // ¡Palabrones! · Interfaz: pantallas, menús, HUD, explicaciones, resultados y teclado.
-import * as E from './escena.js?v=1.1.11';
-import { J, empezar, lanzar, congelar, pausar, abandonar } from './juego.js?v=1.1.11';
-import * as Pr from './progreso.js?v=1.1.11';
-import { CATS, TRUCOS, MUNDOS, TIENDA, AVATARES, claveNivel } from './datos.js?v=1.1.11';
-import { iniciarAudio, musica, volumenes, sfx, precargarMusica } from './audio.js?v=1.1.11';
-import { decir, callar, activarVoz, desbloquearVoz } from './voz.js?v=1.1.11';
-import { dibujar as dibujarEtiquetas, limpiar as limpiarEtiquetas } from './etiquetas.js?v=1.1.11';
+import * as E from './escena.js?v=1.1.12';
+import { J, empezar, lanzar, congelar, pausar, abandonar } from './juego.js?v=1.1.12';
+import * as Pr from './progreso.js?v=1.1.12';
+import { CATS, TRUCOS, MUNDOS, TIENDA, AVATARES, claveNivel } from './datos.js?v=1.1.12';
+import { iniciarAudio, musica, volumenes, sfx, precargarMusica } from './audio.js?v=1.1.12';
+import { decir, callar, activarVoz, desbloquearVoz } from './voz.js?v=1.1.12';
+import { dibujar as dibujarEtiquetas, limpiar as limpiarEtiquetas } from './etiquetas.js?v=1.1.12';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -88,6 +88,7 @@ function calidad() {
 let listo3D = false;
 try {
   E.iniciar($('#c3d'), calidad());
+  E.default.alFalloRetro = () => { Pr.ajustes().retro = false; Pr.guardar(); const c = $('#o-retro'); if (c) { c.checked = false; c.disabled = true; } };
   E.retro(!!Pr.ajustes().retro);
   E.default.alDibujar = dibujarEtiquetas;
   E.aspectoHeroe({ color: 'violeta', sombrero: 'mago', mascota: 'ninguna' }, '#a78bfa');

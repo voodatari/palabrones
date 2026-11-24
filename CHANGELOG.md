@@ -1,5 +1,15 @@
 # Cambios de ¡Palabrones!
 
+## v1.1.12 · 2026-11-24 · Look retro en el móvil
+
+- El look retro dejaba de funcionar en muchos móviles (solo cambiaba el color del cielo y bajaba mucho el rendimiento):
+  usaba un objetivo de dibujo con suavizado MSAA y texturas de coma flotante, que esos móviles no admiten. Ahora el
+  MSAA va en un objetivo de 8 bits (que sí admiten) y solo se usa con «Bonitos» si la tarjeta lo permite.
+- Comprobación automática: si aun así el dispositivo no puede dibujarlo, primero se prueba sin MSAA y, si tampoco, el
+  look retro se desactiva solo (y su interruptor queda apagado) en vez de estropear la imagen.
+- En el móvil cada píxel retro mide ≈1,3 px web (4 de pantalla en un x3): más fino que en el ordenador, y las franjas de
+  color solo se pintan cuando encajan con el tamaño del píxel.
+
 ## v1.1.11 · 2026-11-24 · Lumi siempre a la vista al terminar un nivel
 
 - Al superar (o perder) un nivel, Lumi se ve entera mientras aparecen las ventanas: en horizontal se coloca a la

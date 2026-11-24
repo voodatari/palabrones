@@ -2,7 +2,7 @@
 // Personajes, monstruos y decorado son modelos GLB de Quaternius (CC0), en web/modelos.
 // El estado del juego vive en juego.js; aquí solo se dibuja (las mallas son una «vista»).
 
-import * as THREE from './lib/three.module.js?v=1.1.11';
+import * as THREE from './lib/three.module.js?v=1.1.12';
 import { GLTFLoader } from './lib/addons/loaders/GLTFLoader.js';
 import { clone as clonarEsqueleto } from './lib/addons/utils/SkeletonUtils.js';
 import { RoomEnvironment } from './lib/addons/environments/RoomEnvironment.js';
@@ -245,7 +245,7 @@ const MODELOS = new Map();
 const ALTURAS = new Map();
 export function cargar(nombre) {
   if (!MODELOS.has(nombre)) {
-    MODELOS.set(nombre, new Promise((ok, mal) => cargador.load(`modelos/${nombre}.glb?v=1.1.11`, ok, undefined, mal)).catch((e) => { console.warn('modelo', nombre, e); return null; }));
+    MODELOS.set(nombre, new Promise((ok, mal) => cargador.load(`modelos/${nombre}.glb?v=1.1.12`, ok, undefined, mal)).catch((e) => { console.warn('modelo', nombre, e); return null; }));
   }
   return MODELOS.get(nombre);
 }
@@ -438,7 +438,7 @@ export async function prepararTema(nombre, alProgreso) {
 // de la pantalla: así las líneas de barrido y las franjas de color encajan exactamente y no aparece moiré.
 const RETRO_FXAA = false;   // el FXAA sobre una imagen de baja resolución la emborrona: se usa MSAA en su lugar
 const RETRO_MSAA = 4;
-const RETRO = { activo: false, comp: null, uni: null, escena: null, cam: null, w: 2, h: 2, kd: 3 };
+const RETRO = { activo: false, verificar: 0, sinMsaa: false, comp: null, uni: null, escena: null, cam: null, w: 2, h: 2, kd: 3 };
 const CRT_FRAG = `
 uniform sampler2D tDiffuse; uniform vec2 baja; uniform float kd;
 // Todo está compensado para que el brillo medio no cambie: solo se reparte distinto dentro de cada píxel.
@@ -452,7 +452,7 @@ void main() {
   float sl = kd < 2.5 ? 1.0 + 0.18 * (f.y < 0.5 ? 1.0 : -1.0)               // 2 px: una fila clara y otra oscura
                       : 1.0 + 0.3 * (sin(f.y * 3.14159265) - 0.63662);      // 3 px o más: líneas de barrido suaves (media 1)
   vec3 m = vec3(1.0);
-  if (kd > 2.5) { float sub = floor(f.x * 3.0); m += 0.18 * (vec3(float(sub < 0.5), float(sub > 0.5 && sub < 1.5), float(sub > 1.5)) - 0.33333); } // franjas RGB (media 1)
+  if (kd > 2.5 && mod(kd, 3.0) < 0.5) { float sub = floor(f.x * 3.0); m += 0.18 * (vec3(float(sub < 0.5), float(sub > 0.5 && sub < 1.5), float(sub > 1.5)) - 0.33333); } // franjas RGB (media 1)
   gl_FragColor = vec4(clamp(c * sl * m, 0.0, 1.0), 1.0);
 }`;
 function prepararRetro() {
@@ -462,7 +462,8 @@ function prepararRetro() {
   RETRO.escena = new THREE.Scene(); RETRO.cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
   const q = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), mat); q.frustumCulled = false; RETRO.escena.add(q);
   if (!E.compositor) { // sin efectos de imagen: un compositor mínimo que deja la imagen ya con su tono y color finales
-    RETRO.comp = new EffectComposer(E.renderer);
+    // Objetivo de 8 bits con MSAA: los de coma flotante con MSAA no existen en muchos móviles (y dejan la imagen sin dibujar).
+    RETRO.comp = new EffectComposer(E.renderer, new THREE.WebGLRenderTarget(2, 2, { type: THREE.UnsignedByteType, samples: RETRO_MSAA }));
     RETRO.comp.addPass(new RenderPass(E.escena, E.camara));
     RETRO.comp.addPass(new OutputPass());
   }
@@ -470,15 +471,29 @@ function prepararRetro() {
 export function retro(si) {
   if (!!si === RETRO.activo || !E.renderer) return;
   if (si) prepararRetro();
-  RETRO.activo = !!si; E.retro = RETRO.activo;
+  RETRO.activo = !!si; E.retro = RETRO.activo; RETRO.verificar = si ? 3 : 0;
   const comp = E.compositor || RETRO.comp;
   if (comp) comp.renderToScreen = !si;
   ajustarTamano();
+}
+// Comprobación de seguridad: en algunos móviles los objetivos de dibujo con MSAA no funcionan y la imagen no se dibuja.
+// Si pasa, primero se prueba sin MSAA y, si sigue sin ir, se apaga el look retro (y se avisa a los ajustes).
+function verificarRetro(comp) {
+  const r = E.renderer, gl = r.getContext();
+  r.setRenderTarget(comp.readBuffer);
+  const ok = gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE && !gl.getError();
+  r.setRenderTarget(null);
+  if (ok) return;
+  if (comp.renderTarget1.samples > 0) {
+    for (const rt of [comp.renderTarget1, comp.renderTarget2]) { rt.samples = 0; rt.dispose(); }
+    RETRO.verificar = 2; RETRO.sinMsaa = true;
+  } else { console.warn('look retro no disponible en este dispositivo'); retro(false); if (E.alFalloRetro) E.alFalloRetro(); }
 }
 function pintar(r) {
   if (!RETRO.activo) { if (E.compositor) E.compositor.render(); else r.render(E.escena, E.camara); return; }
   const comp = E.compositor || RETRO.comp;
   comp.render();
+  if (RETRO.verificar > 0 && --RETRO.verificar === 0) verificarRetro(comp);
   RETRO.uni.tDiffuse.value = comp.readBuffer.texture;
   r.setRenderTarget(null); r.render(RETRO.escena, RETRO.cam);
 }
@@ -496,17 +511,19 @@ function ajustarTamano() {
   E.renderer.setSize(w, h, false);
   const comp = E.compositor || RETRO.comp, pr = E.renderer.getPixelRatio();
   if (RETRO.activo && comp) {
-    // Cada píxel retro = kd píxeles de pantalla (entero). Móvil: 2-3 (≈1 px web); ordenador: 3 (4 en pantallas muy grandes).
+    // Cada píxel retro = kd píxeles de pantalla (entero). Móvil: ≈1,3 px web (4 de pantalla en un x3); ordenador: 3 (6 en pantallas muy grandes).
     const bw = Math.round(w * pr), bh = Math.round(h * pr);
-    RETRO.kd = movil ? Math.min(3, Math.max(2, Math.round(dpr))) : (bh >= 1500 ? 4 : 3);
+    RETRO.kd = movil ? Math.max(3, Math.round(dpr * 1.33)) : Math.max(3, Math.round(bh / 1080) * 3);
     RETRO.w = Math.max(2, Math.ceil(bw / RETRO.kd)); RETRO.h = Math.max(2, Math.ceil(bh / RETRO.kd));
-    for (const rt of [comp.renderTarget1, comp.renderTarget2]) if (rt.samples !== RETRO_MSAA) { rt.samples = RETRO_MSAA; rt.dispose(); }
+    // Solo se usa MSAA en el compositor de «Bonitos» si la tarjeta lo permite con texturas de coma flotante.
+    const msaa = RETRO.sinMsaa ? 0 : comp === RETRO.comp || E.renderer.extensions.has('EXT_color_buffer_float') ? RETRO_MSAA : 0;
+    for (const rt of [comp.renderTarget1, comp.renderTarget2]) if (rt.samples !== msaa) { rt.samples = msaa; rt.dispose(); }
     comp.setPixelRatio(1); comp.setSize(RETRO.w, RETRO.h);
     if (E.fxaa) { E.fxaa.enabled = RETRO_FXAA; if (RETRO_FXAA) E.fxaa.material.uniforms.resolution.value.set(1 / RETRO.w, 1 / RETRO.h); }
     RETRO.uni.baja.value.set(RETRO.w, RETRO.h); RETRO.uni.kd.value = RETRO.kd;
     if (P.puntos) P.puntos.material.uniforms.escalaPx.value = RETRO.h * 0.55;
   } else {
-    if (comp) {
+    if (E.compositor) {
       for (const rt of [comp.renderTarget1, comp.renderTarget2]) if (rt.samples !== 0) { rt.samples = 0; rt.dispose(); }
       comp.setPixelRatio(pr); comp.setSize(w, h);
     }
