@@ -1,10 +1,10 @@
 // ¡Palabrones! · Lógica de partida: niveles normales, jefes, desafío infinito y entrenamiento.
 // El estado vive aquí (objetos planos); escena.js solo lo dibuja.
 
-import * as E from './escena.js?v=1.1.1';
-import { PALABRAS, FRASES, CATS, MUNDOS, explicarSuelta, explicarEnFrase } from './datos.js?v=1.1.1';
-import * as Pr from './progreso.js?v=1.1.1';
-import { sfx, musica, intensidad } from './audio.js?v=1.1.1';
+import * as E from './escena.js?v=1.1.2';
+import { PALABRAS, FRASES, CATS, MUNDOS, explicarSuelta, explicarEnFrase } from './datos.js?v=1.1.2';
+import * as Pr from './progreso.js?v=1.1.2';
+import { sfx, musica, intensidad } from './audio.js?v=1.1.2';
 
 const CARRILES = [-2.3, 0, 2.3];
 const Z_SALIDA = -27, Z_LLEGADA = -2.2;
@@ -17,6 +17,32 @@ let ui = null;
 let sigId = 1;
 
 function azar(a) { return a[Math.floor(Math.random() * a.length)]; }
+
+// ---------- memoria entre partidas ----------
+// Para no ver siempre lo mismo: se recuerdan las últimas palabras (por lema: «simpático», «simpática» y
+// «simpáticos» cuentan como una) y las frases que han salido, y se prefiere lo que no se ha visto nunca o
+// lleva más tiempo sin salir.
+const CLAVE_VISTAS = 'palabrones.vistas', MAX_VISTAS = 2500;
+let vistas = [];
+try { const a = JSON.parse(localStorage.getItem(CLAVE_VISTAS) || '[]'); if (Array.isArray(a)) vistas = a; } catch (e) { /* sin memoria */ }
+let guardarVistas = 0;
+function recordar(k) {
+  const i = vistas.indexOf(k);
+  if (i >= 0) vistas.splice(i, 1);
+  vistas.push(k);
+  if (vistas.length > MAX_VISTAS) vistas.splice(0, vistas.length - MAX_VISTAS);
+  clearTimeout(guardarVistas);
+  guardarVistas = setTimeout(() => { try { localStorage.setItem(CLAVE_VISTAS, JSON.stringify(vistas)); } catch (e) { /* sin memoria */ } }, 1500);
+}
+// Elige al azar entre lo que nunca ha salido; si todo ha salido ya, entre lo que lleva más tiempo sin salir.
+function elegirNuevo(items, claveDe) {
+  if (!items.length) return null;
+  const orden = new Map(); vistas.forEach((k, i) => orden.set(k, i));
+  const nuevos = items.filter((x) => !orden.has(claveDe(x)));
+  if (nuevos.length) return azar(nuevos);
+  const ord = items.slice().sort((a, b) => orden.get(claveDe(a)) - orden.get(claveDe(b)));
+  return azar(ord.slice(0, Math.max(1, Math.ceil(ord.length / 4))));
+}
 function mezclar(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 
 // ---------- creación de «elementos» (lo que lleva cada Palabrón) ----------
@@ -40,16 +66,19 @@ function elegirCat(cats) {
 function nuevaSuelta(st, cats = st.cats || ['S', 'A', 'V']) {
   const cat = elegirCat(cats);
   const nv = nivelesDe(st, cat);
-  let lista = PALABRAS.filter((w) => w.cat === cat && nv.includes(w.nivel) && !J.usadas.has('s:' + w.p));
-  if (!lista.length) lista = PALABRAS.filter((w) => w.cat === cat && nv.includes(w.nivel));
-  return itemSuelta(azar(lista));
+  const todas = PALABRAS.filter((w) => w.cat === cat && nv.includes(w.nivel));
+  // Nunca dos veces la misma palabra en una partida (ni la misma familia: «salta», «saltamos»…).
+  let lista = todas.filter((w) => !J.lemas.has(w.lema) && !J.usadas.has('s:' + w.p));
+  if (!lista.length) lista = todas.filter((w) => !J.usadas.has('s:' + w.p));
+  if (!lista.length) lista = todas;
+  return itemSuelta(elegirNuevo(lista, (w) => w.lema));
 }
 
 function nuevaFrase(soloSimples, soloCamaleon) {
   let idx = FRASES.map((f, i) => i).filter((i) => (soloSimples ? !FRASES[i].camaleon : true) && (soloCamaleon ? FRASES[i].camaleon : true));
   const libres = idx.filter((i) => !J.frasesUsadas.has(i));
   if (libres.length) idx = libres;
-  const fi = azar(idx); J.frasesUsadas.add(fi);
+  const fi = elegirNuevo(idx, (i) => 'f' + i); J.frasesUsadas.add(fi); recordar('f' + fi);
   const f = FRASES[fi];
   let opciones = f.tokens.map((t, i) => i).filter((i) => f.tokens[i].cat);
   if (soloCamaleon) opciones = opciones.filter((i) => f.tokens[i].camaleon);
@@ -72,7 +101,8 @@ function siguienteItem() {
   if (J.cola.length) return J.cola.shift();
   const st = J.st;
   let it = null;
-  if (J.modo !== 'repaso' && Math.random() < 0.15) it = itemDeRepaso(st.cats || ['S', 'A', 'V'], st.tipo === 'frases' || st.tipo === 'camaleon');
+  // Las falladas vuelven (aprender de los errores), pero como mucho dos por partida: si no, siempre salen las mismas.
+  if (J.modo !== 'repaso' && J.repasos < 2 && Math.random() < 0.15) { it = itemDeRepaso(st.cats || ['S', 'A', 'V'], st.tipo === 'frases' || st.tipo === 'camaleon'); if (it) J.repasos++; }
   if (!it) {
     if (st.tipo === 'sueltas') it = nuevaSuelta(st);
     else if (st.tipo === 'frases') it = nuevaFrase(!!st.soloSimples, false);
@@ -80,6 +110,7 @@ function siguienteItem() {
     else if (st.tipo === 'mixto') it = Math.random() < 0.5 ? nuevaSuelta({ niveles: [1, 2] }) : nuevaFrase(!st.camaleones, st.camaleones && Math.random() < 0.5);
   }
   J.usadas.add(it.clave);
+  if (it.w) { J.lemas.add(it.w.lema); recordar(it.w.lema); }
   J.ultimas.push(it.cat);
   return it;
 }
@@ -95,7 +126,7 @@ export function empezar(cfg, interfaz) {
   else st = { tipo: 'sueltas', cats: ['S', 'A', 'V'], niveles: [1, 2], n: 14, vel: 1.25, cada: 3.8 };
   Object.assign(J, {
     activo: true, pausado: false, terminado: false, modo: cfg.modo, mundo: cfg.mundo ?? 0, nivel: cfg.nivel ?? 0, st, lento,
-    monstruos: [], cola: [], usadas: new Set(), frasesUsadas: new Set(), ultimas: [],
+    monstruos: [], cola: [], usadas: new Set(), lemas: new Set(), repasos: 0, frasesUsadas: new Set(), ultimas: [],
     vidas: CORAZONES, combo: 0, mejorCombo: 0, puntos: 0, vencidos: 0, aciertos: 0, fallos: 0, rapidos: 0,
     porCat: { S: { ok: 0, total: 0 }, A: { ok: 0, total: 0 }, V: { ok: 0, total: 0 } },
     superCarga: 0, congeladoHasta: 0, reloj: 0, segundos: 0, siguienteSalida: 1.2, carril: 1, cuenta: 3.2,

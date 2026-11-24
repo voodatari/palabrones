@@ -2,7 +2,7 @@
 // Regla de oro: las palabras SUELTAS son de una sola clase sin dudas (nada de «canto»,
 // «juego», «cocina», «río», «frío»…). Las palabras «camaleón» solo salen dentro de una frase.
 
-import { BANCO } from './banco.js?v=1.1.1';
+import { BANCO } from './banco.js?v=1.1.2';
 
 export const CATS = {
   S: { id: 'S', nombre: 'Sustantivo', corto: 'Nombre', lema: 'nombra', color: '#3b82f6', claro: '#93c5fd', oscuro: '#1e40af' },
@@ -21,9 +21,9 @@ const GRUPOS = { g: 'un grupo (es un sustantivo colectivo)', p: 'a una persona',
 // ---------- PALABRAS SUELTAS ----------
 // Vienen de banco.js, generado por herramientas/generar-banco.js (quita lo ambiguo con un diccionario).
 function desdeBanco(f) {
-  if (f[0] === 'S') return { p: f[1], cat: 'S', nivel: f[2], g: f[3], grupo: f[4], pl: !!f[5], pr: !!f[6], el: !!f[7] };
-  if (f[0] === 'A') return { p: f[1], cat: 'A', nivel: f[2], ej: f[3] };
-  return { p: f[1], cat: 'V', nivel: f[2], inf: f[3], quien: f[4] };
+  if (f[0] === 'S') return { p: f[1], cat: 'S', nivel: f[2], g: f[3], grupo: f[4], pl: !!f[5], pr: !!f[6], el: !!f[7], lema: f[8] };
+  if (f[0] === 'A') return { p: f[1], cat: 'A', nivel: f[2], ej: f[3], lema: f[4] };
+  return { p: f[1], cat: 'V', nivel: f[2], inf: f[3], quien: f[4], lema: f[3] };
 }
 export const PALABRAS = BANCO.map(desdeBanco);
 
@@ -61,7 +61,7 @@ Mi abuela|S *cocina|V:cocinar una tarta|S deliciosa|A:tarta.
 La *cocina|S de mi casa|S es|V:ser muy luminosa|A:cocina.
 Mi *juego|S favorito|A:juego es|V:ser el ajedrez|S.
 *Juego|V:jugar con mi hermano|S pequeño|A:hermano.
-El *canto|S del pájaro|S despierta|V:despertar a mi madre|S.
+El *canto|S del gallo|S despierta|V:despertar a mi madre|S.
 Yo *canto|V:cantar canciones|S alegres|A:canciones.
 La *llama|S de la vela|S es|V:ser naranja|A:llama.
 Mi madre|S me *llama|V:llamar por teléfono|S.
@@ -109,11 +109,11 @@ La abuela|S teje|V:tejer una bufanda|S azul|A:bufanda.
 El tren|S rápido|A:tren cruza|V:cruzar el puente|S.
 Mi perro|S persigue|V:perseguir a los gatos|S.
 Las estrellas|S brillan|V:brillar en la noche|S oscura|A:noche.
-El panadero|S prepara|V:preparar pan|S caliente|A:pan.
+El panadero|S prepara|V:preparar pan|S crujiente|A:pan.
 Los alumnos|S atentos|A:alumnos escuchan|V:escuchar la explicación|S.
 La bruja|S malvada|A:bruja prepara|V:preparar una poción|S mágica|A:poción.
 El astronauta|S viaja|V:viajar a un planeta|S lejano|A:planeta.
-Los pájaros|S construyen|V:construir nidos|S pequeños|A:nidos.
+Las aves|S construyen|V:construir nidos|S pequeños|A:nidos.
 Mi tía|S tiene|V:tener una moto|S nueva|A:moto.
 El león|S feroz|A:león ruge|V:rugir en la sabana|S.
 La luna|S *llena|A:luna ilumina|V:iluminar el bosque|S.
@@ -128,7 +128,7 @@ Martina|S escribe|V:escribir un poema|S precioso|A:poema.
 El dragón|S *rojo|A:dragón vuela|V:volar sobre la montaña|S.
 Los niños|S cansados|A:niños duermen|V:dormir la siesta|S.
 La tortuga|S camina|V:caminar muy despacio.
-El gato|S gordo|A:gato persigue|V:perseguir a un ratón|S.
+El gato|S travieso|A:gato persigue|V:perseguir a un ratón|S.
 Mi madre|S *compra|V:comprar fruta|S fresca|A:fruta.
 Hugo|S toca|V:tocar la guitarra|S eléctrica|A:guitarra.
 La ballena|S azul|A:ballena es|V:ser un animal|S enorme|A:animal.
@@ -238,7 +238,7 @@ La *charla|S fue|V:ser interesante|A:charla.
 Mi abuela|S me *paga|V:pagar un *helado|S.
 Un viento|S *helado|A:viento sopla|V:soplar en la montaña|S.
 El *helado|S de fresa|S está|V:estar riquísimo|A:helado.
-Mezclo|V:mezclar la harina|S con los huevos|S.
+Mezclo|V:mezclar la harina|S con la mantequilla|S.
 Esa *mezcla|S de colores|S es|V:ser preciosa|A:mezcla.
 El gato|S *caza|V:cazar ratones|S.
 El caballero|S lleva|V:llevar una *lanza|S *larga|A:lanza.
@@ -268,7 +268,7 @@ Hay|V:haber una ola|S *gigante|A:ola.
 El *pequeño|S de la familia|S se llama|V:llamar Leo|S.
 El *público|S aplaude|V:aplaudir con ganas|S.
 El parque|S *público|A:parque está|V:estar *limpio|A:parque.
-La *comida|S está|V:estar caliente|A:comida.
+La *comida|S está|V:estar sabrosa|A:comida.
 Mi tía|S *toma|V:tomar un zumo|S de naranja|S.
 El *trabajo|S en equipo|S es|V:ser importante|A:trabajo.
 Mi padre|S trabaja|V:trabajar en una fábrica|S.

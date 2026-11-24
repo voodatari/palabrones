@@ -1,5 +1,9 @@
 # Cambios de ¡Palabrones!
 
+## v1.1.2 · 2026-11-24 · Cambios menores
+
+- Cambios menores.
+
 ## v1.1.1 · 2026-11-24 · Música sin cortes al empezar
 
 - Si existe el archivo de una canción (carpeta music/), ya no suena antes la música generada mientras
