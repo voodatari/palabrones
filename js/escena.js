@@ -1,8 +1,8 @@
 // ¡Palabrones! · Escena 3D (three.js r187): mundos, Lumi, Palabrones, jefes, hechizos y efectos.
-// Personajes, monstruos y decorado son modelos GLB de Quaternius (CC0; Lumi es de antoine1germ, CC-BY), en web/modelos.
+// Personajes, monstruos y decorado son modelos GLB de Quaternius (CC0), en web/modelos.
 // El estado del juego vive en juego.js; aquí solo se dibuja (las mallas son una «vista»).
 
-import * as THREE from './lib/three.module.js?v=1.1.3';
+import * as THREE from './lib/three.module.js?v=1.1.4';
 import { GLTFLoader } from './lib/addons/loaders/GLTFLoader.js';
 import { clone as clonarEsqueleto } from './lib/addons/utils/SkeletonUtils.js';
 import { RoomEnvironment } from './lib/addons/environments/RoomEnvironment.js';
@@ -244,7 +244,7 @@ const MODELOS = new Map();
 const ALTURAS = new Map();
 export function cargar(nombre) {
   if (!MODELOS.has(nombre)) {
-    MODELOS.set(nombre, new Promise((ok, mal) => cargador.load(`modelos/${nombre}.glb?v=1.1.3`, ok, undefined, mal)).catch((e) => { console.warn('modelo', nombre, e); return null; }));
+    MODELOS.set(nombre, new Promise((ok, mal) => cargador.load(`modelos/${nombre}.glb?v=1.1.4`, ok, undefined, mal)).catch((e) => { console.warn('modelo', nombre, e); return null; }));
   }
   return MODELOS.get(nombre);
 }
@@ -349,6 +349,7 @@ function texturaSuelo(base, mancha, tipo, semilla) {
 export function iniciar(canvas, calidad) {
   E.calidad = calidad;
   const r = new THREE.WebGLRenderer({ canvas, antialias: calidad !== 'alta', powerPreference: 'high-performance' });
+  r.localClippingEnabled = true; // el pelo de Lumi se recorta a la altura del ala del sombrero
   r.setPixelRatio(Math.min(window.devicePixelRatio || 1, calidad === 'alta' ? 1.25 : 1));
   r.setSize(innerWidth, innerHeight, false);
   r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 1.0;
@@ -677,52 +678,57 @@ function crearHeroe() {
   aura.rotation.x = -Math.PI / 2; aura.position.y = 0.05; aura.userData.sinAO = true; grupo.add(aura);
   const orbe = new THREE.Mesh(new THREE.IcosahedronGeometry(0.12, 1), new THREE.MeshBasicMaterial({ color: '#ffe066' }));
   const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: texBrillo, color: '#ffe066', transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); halo.scale.setScalar(0.9);
-  const sombreroSitio = new THREE.Group();
+  const sombreroSitio = new THREE.Group(), vara = new THREE.Group(), planoPelo = new THREE.Plane();
   const mascotaSitio = new THREE.Group(); grupo.add(mascotaSitio);
   grupo.position.set(0, 0, 1.6);
-  return { grupo, cuerpo, aura, orbe, halo, sombreroSitio, mascotaSitio, sombra, lanzar: 0, herido: 0, salto: 0, triste: 0, rotObj: 0, aspecto: null, mascota: null, modelo: null, actual: null };
+  return { grupo, cuerpo, aura, orbe, halo, sombreroSitio, vara, planoPelo, mascotaSitio, sombra, lanzar: 0, herido: 0, salto: 0, triste: 0, rotObj: 0, aspecto: null, mascota: null, modelo: null, actual: null };
 }
 
 function montarHeroe() {
   const h = E.heroe;
   if (h.modelo) return;
-  const a = copiaAnimada('mago', 2.3);
+  const a = copiaAnimada('mago', 2.2);
   if (!a) return;
-  // La bruja tiene los pies lejos del origen: se centra en un pivote a ras de suelo y por él se mueve todo el cuerpo.
-  a.o.updateMatrixWorld(true);
-  const caja = new THREE.Box3().setFromObject(a.o, true), c0 = new THREE.Vector3(); caja.getCenter(c0);
-  a.o.position.set(-c0.x, -caja.min.y, -c0.z);
-  const pivote = new THREE.Group(); pivote.add(a.o);
-  h.modelo = pivote; h.mixer = a.mixer; h.base = a.o; h.proc = true;
-  const reposo = a.buscar('Armature.001Action');
-  h.acc = { quieto: reposo, correr: reposo, hechizo: null, golpe: null, victoria: null, triste: null };
-  h.cuerpo.add(pivote);
-  a.o.traverse((c) => { if (c.isMesh && c.material && c.material.name === 'dress.003') c.material.color.set('#8b3fd0'); if (c.isMesh && c.material && c.material.name === 'dress.002') c.material.color.set('#8b3fd0'); });
-  // Sitios de la varita (orbe en su punta) y del sombrero, medidos sobre el propio modelo.
-  a.o.updateMatrixWorld(true);
-  const inv = new THREE.Matrix4().copy(a.o.matrixWorld).invert(), v = new THREE.Vector3();
-  let punta = null, pelo = new THREE.Box3(), sombreroMallas = [];
+  h.modelo = a.o; h.mixer = a.mixer;
+  h.acc = { quieto: a.buscar('Idle'), correr: a.buscar('Run'), hechizo: a.buscar('Dagger_Attack', 'Punch'), golpe: a.buscar('RecieveHit'), victoria: a.buscar('Punch', 'Roll'), triste: a.buscar('Death') };
+  h.cuerpo.add(a.o);
+  // Túnica de aprendiz de mago (los colores del modelo son de aventurero).
+  const ROPA = { Shirt: '#6d4bd1', Pants: '#2b3a8c', Detail: '#ffd23f', UnderShirt: '#f4e7ff', Boots: '#5b2a86' };
   a.o.traverse((c) => {
-    if (!c.isSkinnedMesh) return;
-    const n = c.material.name;
-    if (n === 'Material.016' || n === 'Material.019') sombreroMallas.push(c);
-    const esPelo = n === 'Hair.001';
-    for (let i = 0; i < c.geometry.attributes.position.count; i++) {
-      c.getVertexPosition(i, v); v.applyMatrix4(c.matrixWorld).applyMatrix4(inv);
-      if (!punta || v.x < punta.x) punta = v.clone();
-      if (esPelo) pelo.expandByPoint(v);
-    }
+    if (c.isMesh && c.material && ROPA[c.material.name]) { if (!c.material.userData.teñido) { c.material = c.material.clone(); c.material.userData.teñido = true; } c.material.color.set(ROPA[c.material.name]); }
+    if (c.isMesh && c.material && c.material.name === 'Hair') { c.material = c.material.clone(); h.pelo = c.material; }
+    if (c.name === 'Head') h.cabeza = c;
+    if (c.name === 'FistR') h.mano = c;
   });
-  h.sombreroOriginal = sombreroMallas;
-  const aE = a.escala;
-  if (punta) { h.orbe.position.copy(punta); h.orbe.scale.setScalar(1 / aE); h.halo.position.copy(punta); h.halo.scale.setScalar(0.9 / aE); a.o.add(h.orbe, h.halo); h.punta = a.o; }
-  else { h.orbe.position.set(0.5, 1.6, 0.2); h.cuerpo.add(h.orbe, h.halo); }
-  const cp = new THREE.Vector3(); pelo.getCenter(cp);
-  h.sombreroSitio.position.set(cp.x, pelo.max.y - 0.04 / aE, cp.z); h.sombreroSitio.scale.setScalar(0.75 / aE);
-  a.o.add(h.sombreroSitio);
+  a.o.updateMatrixWorld(true);
+  const esc = new THREE.Vector3();
+  // Estilo «chibi»: cabeza grande.
+  if (h.cabeza) { h.cabeza.scale.setScalar(1.6); h.cabeza.add(h.sombreroSitio); h.cabeza.updateMatrixWorld(true); h.cabeza.getWorldScale(esc); h.escCab = esc.x; }
+  // Varita en la mano derecha, con el orbe en la punta.
+  if (h.mano) {
+    h.mano.getWorldScale(esc);
+    const palo = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.026, 0.7, 8), toon('#7a4b1e'));
+    palo.position.y = 0.22; h.vara.add(palo); h.vara.rotation.set(Math.PI / 2, Math.PI / 2, Math.PI / 4);
+    h.vara.scale.setScalar(1 / esc.x);
+    h.orbe.position.set(0, 0.6, 0); h.halo.position.set(0, 0.6, 0);
+    h.vara.add(h.orbe, h.halo); h.mano.add(h.vara); h.punta = h.vara;
+  } else { h.orbe.position.set(0.5, 1.6, 0.2); h.cuerpo.add(h.orbe, h.halo); }
   h.actual = reproducir(h.acc.quieto, null);
-  const ap = h.aspecto; // si ya había un sombrero comprado, sustituye al de bruja
-  if (ap && ap.sombrero && ap.sombrero !== 'mago' && SOMBREROS[ap.sombrero]) for (const m of sombreroMallas) m.visible = false;
+  ponerSombrero();
+}
+
+// Sombrero de mago de serie (con el color del aura) o el que se haya comprado.
+function ponerSombrero() {
+  const h = E.heroe;
+  if (!h.cabeza || !h.escCab) return;
+  const id = h.aspecto && h.aspecto.sombrero && SOMBREROS[h.aspecto.sombrero] ? h.aspecto.sombrero : SOMBRERO_NINGUNO;
+  const mago = id === SOMBRERO_NINGUNO, e = h.escCab;
+  h.sombreroSitio.clear();
+  h.sombreroSitio.add(SOMBREROS[id](h.colorAura || '#7c3aed'));
+  // Con el sombrero de mago (que baja hasta las cejas) el pelo que queda por encima del ala se recorta: así no atraviesa el cono.
+  if (h.pelo) { h.pelo.clippingPlanes = mago ? [h.planoPelo] : null; h.pelo.needsUpdate = true; }
+  h.sombreroSitio.position.set(0, (mago ? 0.6 : 0.9) / e, 0.02 / e);
+  h.sombreroSitio.scale.setScalar((mago ? 1.3 : 1.0) / e);
 }
 
 const SOMBRERO_NINGUNO = 'mago';
@@ -730,12 +736,9 @@ export function aspectoHeroe(a, colorHex) {
   const h = E.heroe;
   if (h.aspecto && h.aspecto.color === a.color && h.aspecto.sombrero === a.sombrero && h.aspecto.mascota === a.mascota) return;
   h.aspecto = Object.assign({}, a);
+  h.colorAura = colorHex;
   h.aura.material.color.set(colorHex);
-  h.sombreroSitio.clear();
-  // Lumi ya lleva su sombrero de bruja: el de serie no añade nada y, si compras otro, sustituye al suyo.
-  const otro = !!(a.sombrero && a.sombrero !== SOMBRERO_NINGUNO && SOMBREROS[a.sombrero]);
-  if (otro) h.sombreroSitio.add(SOMBREROS[a.sombrero](colorHex));
-  if (h.sombreroOriginal) for (const m of h.sombreroOriginal) m.visible = !otro;
+  ponerSombrero();
   h.mascotaSitio.clear(); h.mascota = null;
   if (a.mascota && MASCOTAS[a.mascota]) { h.mascota = MASCOTAS[a.mascota](); h.mascotaSitio.add(h.mascota); }
 }
@@ -969,17 +972,10 @@ function actualizar(dt, real) {
     }
     h.mixer.timeScale = E.velAvance > 0.4 ? Math.min(1.7, Math.max(0.6, E.velAvance / 3.2)) : 1;
     h.mixer.update(dt);
-    if (h.proc) {
-      // Lumi tiene una sola animación (balanceo): el cuerpo hace el resto por código, con saltitos «chibi».
-      const corre = E.velAvance > 0.4, f = corre ? 10 : 2.2, sn = Math.sin(t * f), k = Math.abs(sn);
-      let y = corre ? k * 0.14 : sn * 0.02, rx = corre ? 0.12 : 0, rz = corre ? sn * 0.07 : Math.sin(t * 1.1) * 0.025, ry = 0;
-      let sy = corre ? 1 + 0.05 * (0.5 - k) : 1 + sn * 0.012;
-      if (h.lanzar > 0) { const q = Math.sin((1 - h.lanzar / 0.45) * Math.PI); rx -= 0.5 * q; y += 0.1 * q; sy += 0.05 * q; }
-      if (h.herido > 0) { const q = h.herido / 0.5; rz += Math.sin(t * 55) * 0.2 * q; rx -= 0.22 * q; sy -= 0.08 * q; }
-      if (h.salto > 1) ry = (1 - (h.salto - 1) / 1.4) * Math.PI * 4; // piruetas al celebrar
-      if (h.triste > 0) { const q = Math.min(1, h.triste / 0.4, (2.9 - h.triste) / 0.3); rx += 0.55 * q; y -= 0.05 * q; sy -= 0.07 * q; }
-      const m = h.modelo; m.position.y += (y - m.position.y) * Math.min(1, dt * 18);
-      m.rotation.set(rx, ry, rz); m.scale.set(1 / Math.sqrt(sy), sy, 1 / Math.sqrt(sy));
+    if (h.pelo && h.pelo.clippingPlanes) {
+      h.sombreroSitio.updateWorldMatrix(true, false);
+      const arriba = new THREE.Vector3(0, 1, 0).applyQuaternion(h.sombreroSitio.getWorldQuaternion(new THREE.Quaternion()));
+      h.planoPelo.setFromNormalAndCoplanarPoint(arriba.clone().negate(), h.sombreroSitio.getWorldPosition(new THREE.Vector3()).addScaledVector(arriba, -0.03));
     }
   }
   h.aura.rotation.z += real * 0.8; h.aura.material.opacity = 0.35 + Math.sin(t * 3) * 0.15 + (E.frenesi ? 0.3 : 0);

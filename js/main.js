@@ -1,11 +1,11 @@
 // ¡Palabrones! · Interfaz: pantallas, menús, HUD, explicaciones, resultados y teclado.
-import * as E from './escena.js?v=1.1.3';
-import { J, empezar, lanzar, congelar, pausar, abandonar } from './juego.js?v=1.1.3';
-import * as Pr from './progreso.js?v=1.1.3';
-import { CATS, TRUCOS, MUNDOS, TIENDA, AVATARES, claveNivel } from './datos.js?v=1.1.3';
-import { iniciarAudio, musica, volumenes, sfx, precargarMusica } from './audio.js?v=1.1.3';
-import { decir, callar, activarVoz, desbloquearVoz } from './voz.js?v=1.1.3';
-import { dibujar as dibujarEtiquetas, limpiar as limpiarEtiquetas } from './etiquetas.js?v=1.1.3';
+import * as E from './escena.js?v=1.1.4';
+import { J, empezar, lanzar, congelar, pausar, abandonar } from './juego.js?v=1.1.4';
+import * as Pr from './progreso.js?v=1.1.4';
+import { CATS, TRUCOS, MUNDOS, TIENDA, AVATARES, claveNivel } from './datos.js?v=1.1.4';
+import { iniciarAudio, musica, volumenes, sfx, precargarMusica } from './audio.js?v=1.1.4';
+import { decir, callar, activarVoz, desbloquearVoz } from './voz.js?v=1.1.4';
+import { dibujar as dibujarEtiquetas, limpiar as limpiarEtiquetas } from './etiquetas.js?v=1.1.4';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];

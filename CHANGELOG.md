@@ -1,5 +1,12 @@
 # Cambios de ¡Palabrones!
 
+## v1.1.4 · 2026-11-24 · Lumi, aprendiz de mago animado
+
+- Lumi vuelve a ser un modelo con animaciones de verdad (esqueleto completo): corre, lanza el hechizo con la
+  varita, se tambalea al recibir un golpe, celebra y se desploma al perder. Es un chico aventurero de Quaternius
+  (CC0) con cabeza grande, túnica morada, sombrero de mago con estrella y varita con orbe brillante.
+- Los sombreros de la tienda se colocan sobre su pelo (corona, chistera, casco vikingo, gorra, flores).
+
 ## v1.1.3 · 2026-11-24 · Lumi, una brujita chibi
 
 - Nuevo personaje protagonista: Lumi es ahora una niña brujita «chibi» (cabeza grande, ojos verdes, trenzas y
