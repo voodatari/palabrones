@@ -2,7 +2,7 @@
 // Personajes, monstruos y decorado son modelos GLB de Quaternius (CC0), en web/modelos.
 // El estado del juego vive en juego.js; aquí solo se dibuja (las mallas son una «vista»).
 
-import * as THREE from './lib/three.module.js?v=1.1.14';
+import * as THREE from './lib/three.module.js?v=1.1.15';
 import { GLTFLoader } from './lib/addons/loaders/GLTFLoader.js';
 import { clone as clonarEsqueleto } from './lib/addons/utils/SkeletonUtils.js';
 import { mergeGeometries } from './lib/addons/utils/BufferGeometryUtils.js';
@@ -246,7 +246,7 @@ const MODELOS = new Map();
 const ALTURAS = new Map();
 export function cargar(nombre) {
   if (!MODELOS.has(nombre)) {
-    MODELOS.set(nombre, new Promise((ok, mal) => cargador.load(`modelos/${nombre}.glb?v=1.1.14`, ok, undefined, mal)).catch((e) => { console.warn('modelo', nombre, e); return null; }));
+    MODELOS.set(nombre, new Promise((ok, mal) => cargador.load(`modelos/${nombre}.glb?v=1.1.15`, ok, undefined, mal)).catch((e) => { console.warn('modelo', nombre, e); return null; }));
   }
   return MODELOS.get(nombre);
 }
@@ -500,6 +500,16 @@ function pintar(r) {
   r.setRenderTarget(null); r.render(RETRO.escena, RETRO.cam);
 }
 
+// Zoom de la página respecto a la pantalla (1 = normal; 0,5 = alejada al 50 %). Safari en iPhone con el zoom de página
+// reducido («Aa» → 50 %) da un ancho de 780 px web en una pantalla de 390 puntos pero mantiene devicePixelRatio = 3: sin
+// esta corrección el lienzo tenía el doble de píxeles por lado de los que la pantalla puede mostrar (4 veces el trabajo).
+function zoomPagina() {
+  // Solo en pantallas táctiles: en el ordenador el zoom del navegador ya cambia devicePixelRatio (y la ventana puede
+  // estar en otro monitor o no tener pantalla real, como en las pruebas sin ventana).
+  if (!(matchMedia('(pointer: coarse)').matches && !matchMedia('(any-pointer: fine)').matches)) return 1;
+  const sMin = Math.min(screen.width || 0, screen.height || 0), iMin = Math.min(innerWidth, innerHeight);
+  return sMin > 0 && iMin > sMin * 1.05 ? Math.max(0.25, sMin / iMin) : 1;
+}
 function ajustarTamano() {
   const w = innerWidth, h = innerHeight, asp = w / h;
   E.camara.aspect = asp;
@@ -507,9 +517,10 @@ function ajustarTamano() {
   const vfov = Math.max(50, (2 * Math.atan(Math.tan(hfov / 2) / asp)) * 180 / Math.PI);
   E.camara.fov = Math.min(vfov, 76);
   E.camara.updateProjectionMatrix();
-  const r = E.renderer, dpr = window.devicePixelRatio || 1;
-  // Look retro: la imagen final se pinta a la resolución real de la pantalla (hasta x3).
-  r.setPixelRatio(RETRO.activo ? Math.min(dpr, 3) : E.pixelRatioBase);
+  const r = E.renderer, z = zoomPagina(), dpr = (window.devicePixelRatio || 1) * z;
+  // Look retro: la imagen final se pinta a la resolución real de la pantalla (hasta x3). Sin él, el límite de
+  // calidad va en puntos de pantalla, así que con la página alejada no se dibujan más píxeles de los necesarios.
+  r.setPixelRatio(RETRO.activo ? Math.min(dpr, 3) : E.pixelRatioBase * z);
   r.setSize(w, h, false);
   const pr = r.getPixelRatio(), comp = E.compositor || RETRO.comp;
   let escalaPx;
