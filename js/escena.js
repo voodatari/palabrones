@@ -2,7 +2,7 @@
 // Personajes, monstruos y decorado son modelos GLB de Quaternius (CC0), en web/modelos.
 // El estado del juego vive en juego.js; aquí solo se dibuja (las mallas son una «vista»).
 
-import * as THREE from './lib/three.module.js?v=1.1.15';
+import * as THREE from './lib/three.module.js?v=1.1.16';
 import { GLTFLoader } from './lib/addons/loaders/GLTFLoader.js';
 import { clone as clonarEsqueleto } from './lib/addons/utils/SkeletonUtils.js';
 import { mergeGeometries } from './lib/addons/utils/BufferGeometryUtils.js';
@@ -246,7 +246,7 @@ const MODELOS = new Map();
 const ALTURAS = new Map();
 export function cargar(nombre) {
   if (!MODELOS.has(nombre)) {
-    MODELOS.set(nombre, new Promise((ok, mal) => cargador.load(`modelos/${nombre}.glb?v=1.1.15`, ok, undefined, mal)).catch((e) => { console.warn('modelo', nombre, e); return null; }));
+    MODELOS.set(nombre, new Promise((ok, mal) => cargador.load(`modelos/${nombre}.glb?v=1.1.16`, ok, undefined, mal)).catch((e) => { console.warn('modelo', nombre, e); return null; }));
   }
   return MODELOS.get(nombre);
 }
@@ -565,9 +565,122 @@ export function vista(v, inmediato = false) {
   if (v === 'menu') { E.camPosObj.set(vert ? 0.6 : 1.4, vert ? 2.3 : 2.2, vert ? 8.4 : 7.8); E.camMiraObj.set(vert ? 0.2 : 2.5, vert ? -0.2 : 1.3, 1.4); }
   else if (v === 'titulo') { E.camPosObj.set(0.4, 2.0, vert ? 8.6 : 7.4); E.camMiraObj.set(0, vert ? -0.4 : -0.1, 1.4); }
   else if (v === 'resultado') { E.camPosObj.set(vert ? 0 : 1.4, 2.2, vert ? 10.5 : 7.8); E.camMiraObj.set(vert ? 0 : 2.5, vert ? -1.6 : 1.3, 1.4); } // Lumi entera arriba (móvil) o a la izquierda, con las ventanas debajo o a la derecha
-  else if (v === 'jefe') { E.camPosObj.set(0, vert ? 4.4 : 3.8, vert ? 13 : 10.5); E.camMiraObj.set(0, vert ? 4.6 : 5.2, -12); } // desde abajo: el jefe impone
+  else if (v === 'jefe') {
+    if (jefePanoramico()) colocarVistaJefe();
+    else { E.camPosObj.set(0, vert ? 4.4 : 3.8, vert ? 13 : 10.5); E.camMiraObj.set(0, vert ? 4.6 : 5.2, -12); encuadrarJefe(); }
+  } // desde abajo: el jefe impone
   else { E.camPosObj.set(0, vert ? 5.6 : 5.6, vert ? 10.4 : 10.2); E.camMiraObj.set(0, vert ? 3.4 : -1.5, -9); } // vertical: Lumi abajo, justo sobre los botones
   if (inmediato) { E.camPos.copy(E.camPosObj); E.camMira.copy(E.camMiraObj); }
+  ocultarDecorado(v === 'jefe' && jefePanoramico());
+}
+// Cámaras panorámicas de los jefes (solo ordenador; se pueden quitar en Opciones). Cada pregunta del jefe usa la siguiente: dan la
+// vuelta alrededor de la escena, siempre elevadas y con Lumi y el jefe a la vez para apreciar la diferencia de tamaño.
+// p = posición de la cámara, m = punto al que mira. Antes de usar una, se comprueba que Lumi y el jefe se ven enteros
+// (ni detrás del panel ni de los botones de respuesta, ni fuera de la pantalla); si no, se salta a la siguiente.
+const VISTAS_JEFE = [
+  { p: [30, 12, -8], m: [0, 7.5, -8] },     // de lado, derecha
+  { p: [22, 13, 12], m: [0, 6, -9] },       // tres cuartos, por delante a la derecha
+  { p: [0, 22, 13], m: [0, 4, -8] },        // desde arriba, por detrás de Lumi
+  { p: [-22, 13, 12], m: [0, 6, -9] },      // tres cuartos, por delante a la izquierda
+  { p: [-30, 12, -8], m: [0, 7.5, -8] },    // de lado, izquierda
+  { p: [18, 10, -32], m: [0, 5, -4] },      // por detrás del jefe: él cerca, Lumi pequeña al fondo
+];
+E.vistaJefe = 0;
+export function siguienteVistaJefe() {
+  if (E.vista !== 'jefe' || !jefePanoramico()) return;
+  E.vistaJefe = (E.vistaJefe + 1) % VISTAS_JEFE.length;
+  colocarVistaJefe();
+  ocultarDecorado(true);
+}
+function medidasJefe() {
+  const panel = document.getElementById('hud-centro'), rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+  // Borde inferior de la barra de vida del jefe (si aún no se ve, el del panel más lo que ocupará la barra).
+  const hj = document.getElementById('hud-jefe'), rj = hj ? hj.getBoundingClientRect() : null;
+  const limite = rj && rj.height ? rj.bottom + 10 : (panel ? panel.getBoundingClientRect().bottom : 0) + 4 * rem + 10;
+  const hb = document.querySelector('.hechizos'), rb = hb ? hb.getBoundingClientRect() : null;
+  return { limite, botones: rb && rb.height ? rb.top : innerHeight };
+}
+function colocarVistaJefe() {
+  const j = E.jefe, n = VISTAS_JEFE.length;
+  if (!E.camara) return;
+  const { limite, botones } = medidasJefe();
+  _camJ.fov = E.camara.fov; _camJ.aspect = E.camara.aspect; _camJ.near = 0.1; _camJ.far = 400; _camJ.updateProjectionMatrix();
+  const W = innerWidth, zH = E.heroe.grupo.position.z, zB = j ? j.g.position.z : -17;
+  const pt = (v, dy, y, z) => { // pantalla (x, y) de un punto del eje del camino con la cámara de la vista v
+    _camJ.position.set(v.p[0], v.p[1], v.p[2]); _camJ.lookAt(v.m[0], v.m[1] + dy, v.m[2]); _camJ.updateMatrixWorld();
+    _vJ.set(0, y, z).project(_camJ); return [(_vJ.x * 0.5 + 0.5) * W, (-_vJ.y * 0.5 + 0.5) * innerHeight, _vJ.z];
+  };
+  const evaluar = (v) => {
+    if (!j) return { dy: 0, esc: 1 };
+    let dy = 0;
+    // Los pies de Lumi y del jefe, por encima de los botones (se baja la mirada, y la imagen sube).
+    while (Math.max(pt(v, dy, 0, zH)[1], pt(v, dy, 0, zB)[1]) > botones - 8 && dy > -8) dy -= 0.25;
+    if (Math.max(pt(v, dy, 0, zH)[1], pt(v, dy, 0, zB)[1]) > botones - 8) return null;
+    // La cabeza del jefe, por debajo del panel y la barra de vida: si no cabe, el jefe se reduce un poco (hasta 0,7).
+    let esc = 1;
+    while (pt(v, dy, j.cima * esc, zB)[1] < limite && esc > 0.7) esc -= 0.02;
+    if (pt(v, dy, j.cima * esc, zB)[1] < limite) return null;
+    // Lumi y el jefe, dentro de la pantalla y delante de la cámara.
+    for (const [y, z, h] of [[2.6, zH, 0], [j.cima * esc, zB, 0], [0, zB, 0]]) { const q = pt(v, dy, y, z); if (q[2] > 1 || q[0] < 40 || q[0] > W - 40) return null; }
+    return { dy, esc };
+  };
+  for (let k = 0; k < n; k++) {
+    const idx = (E.vistaJefe + k) % n, v = VISTAS_JEFE[idx], r = evaluar(v);
+    if (!r) continue;
+    E.vistaJefe = idx;
+    E.camPosObj.set(v.p[0], v.p[1], v.p[2]); E.camMiraObj.set(v.m[0], v.m[1] + r.dy, v.m[2]);
+    if (j) j.escalaFit = r.esc;
+    return;
+  }
+  const v = VISTAS_JEFE[0]; E.camPosObj.set(...v.p); E.camMiraObj.set(...v.m); if (j) j.escalaFit = 1; // ninguna cumple: la primera tal cual
+}
+// El decorado que quedaría entre la cámara y Lumi o el jefe (árboles, rocas…) se oculta para no taparlos.
+function distSeg(px, pz, ax, az, bx, bz) {
+  const dx = bx - ax, dz = bz - az, t = Math.max(0, Math.min(1, ((px - ax) * dx + (pz - az) * dz) / (dx * dx + dz * dz || 1)));
+  return Math.hypot(px - (ax + t * dx), pz - (az + t * dz));
+}
+function ocultarDecorado(activo) {
+  if (!E.deslizables) return;
+  const c = E.camPosObj, zH = E.heroe.grupo.position.z, zB = E.jefe ? E.jefe.g.position.z : -17;
+  for (const o of E.deslizables) {
+    let h = false;
+    if (activo && !(o.userData.modelo || '').startsWith('piedra')) { // el bordillo es bajo: se queda
+      const x = o.position.x, z = o.position.z;
+      h = distSeg(x, z, c.x, c.z, 0, zH) < 4.5 || distSeg(x, z, c.x, c.z, 0, zB) < 7;
+    }
+    o.userData.oculto = h; o.visible = !h;
+  }
+  actualizarLotes();
+}
+E.camJefePano = true;
+export function camaraJefe(si) { E.camJefePano = !!si; if (E.camara) vista(E.vista); }
+function jefePanoramico() {
+  const tactil = matchMedia('(pointer: coarse)').matches && !matchMedia('(any-pointer: fine)').matches;
+  return E.camJefePano && !E.vertical && !tactil;
+}
+// Vista clásica del jefe: la cámara ajusta la mirada y, si hace falta, el tamaño del jefe, para que su cabeza no quede tapada por el
+// panel de la pregunta ni por la barra de vida, y (en horizontal) para que Lumi no quede detrás de los botones de respuesta.
+const _camJ = new THREE.PerspectiveCamera(), _vJ = new THREE.Vector3();
+function encuadrarJefe() {
+  const j = E.jefe;
+  if (!j || E.vista !== 'jefe' || !E.camara) return;
+  if (jefePanoramico()) { colocarVistaJefe(); ocultarDecorado(true); return; }
+  const { limite, botones } = medidasJefe();
+  _camJ.fov = E.camara.fov; _camJ.aspect = E.camara.aspect; _camJ.near = 0.1; _camJ.far = 400; _camJ.updateProjectionMatrix();
+  const y2d = (y, z, dy) => {
+    _camJ.position.set(E.camPosObj.x, E.camPosObj.y, E.camPosObj.z); _camJ.lookAt(E.camMiraObj.x, E.camMiraObj.y + dy, E.camMiraObj.z); _camJ.updateMatrixWorld();
+    _vJ.set(0, y, z).project(_camJ); return (-_vJ.y * 0.5 + 0.5) * innerHeight;
+  };
+  const zH = E.heroe.grupo.position.z;
+  let dy = 0, esc = 1;
+  if (E.vertical) { // móvil: hay hueco, se baja el jefe todo lo posible sin tapar a Lumi
+    while (y2d(j.cima, j.g.position.z, dy) < limite && dy < 6) dy += 0.25;
+  } else { // horizontal clásico: se sube la imagen hasta que los pies de Lumi quedan sobre los botones
+    // (sin hacer al jefe más pequeño que ~9 m: si no cabe todo, Lumi se queda un poco tapada y el jefe manda)
+    while (y2d(0.5, zH, dy) > botones - 4 && dy > -4 && y2d(j.cima * 0.74, j.g.position.z, dy - 0.25) >= limite) dy -= 0.25;
+  }
+  while (y2d(j.cima * esc, j.g.position.z, dy) < limite && esc > 0.4) esc -= 0.02;
+  E.camMiraObj.y += dy; j.escalaFit = esc;
 }
 export function temblor(t) { E.trauma = Math.min(1, E.trauma + t); }
 export function pausaGolpe(seg) { E.pausaGolpeHasta = Math.max(E.pausaGolpeHasta, performance.now() + seg * 1000); }
@@ -638,6 +751,7 @@ const TEMAS = {
 
 function rngSemilla(s) { return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
 const Z_FIN = 12, LARGO = 72; // el decorado móvil vive entre z = 12 y z = -60
+const LARGO_FILA = 112;       // el bordillo llega más lejos (hasta z = -100, el final del camino): se ve desde las cámaras de los jefes
 
 function liberarGrupo(g) {
   g.traverse((o) => {
@@ -709,12 +823,13 @@ function fusionarFijos(g, marcar) {
   for (const o of originales) g.remove(o);
   for (const m of nuevas) g.add(marcar(m));
 }
-const _mL = new THREE.Matrix4();
+const _mL = new THREE.Matrix4(), _mCero = new THREE.Matrix4().makeScale(0, 0, 0);
 function actualizarLotes() {
   for (const L of E.lotes) {
     for (let i = 0; i < L.copias.length; i++) {
       const o = L.copias[i]; o.updateMatrix();
-      for (const p of L.partes) { _mL.multiplyMatrices(o.matrix, p.rel); p.im.setMatrixAt(i, _mL); }
+      const oculto = o.userData.oculto;
+      for (const p of L.partes) { if (oculto) p.im.setMatrixAt(i, _mCero); else { _mL.multiplyMatrices(o.matrix, p.rel); p.im.setMatrixAt(i, _mL); } }
     }
     for (const p of L.partes) p.im.instanceMatrix.needsUpdate = true;
   }
@@ -762,22 +877,31 @@ export function tema(nombre) {
   terreno.position.z = -40; terreno.receiveShadow = true; terreno.userData.propio = true;
   g.add(marcar(terreno));
   const texS = texturaSuelo(T.suelo[0], T.suelo[1], nombre === 'nieve' ? 'nieve' : 'hierba', 3);
-  texS.repeat.set(6, 22);
-  const franja = new THREE.Mesh(new THREE.PlaneGeometry(34, 120), new THREE.MeshStandardMaterial({ map: texS, roughness: 0.95 }));
-  franja.rotation.x = -Math.PI / 2; franja.position.set(0, 0.0, -40); franja.receiveShadow = true; franja.userData.propio = true;
+  // El camino y la franja de hierba llegan hasta 80 m detrás de Lumi (z de -100 a 80), para que se vean enteros desde las cámaras
+  // panorámicas de los jefes. La textura mantiene su tamaño (cada repetición = 120/22 m) y se desliza igual que antes.
+  const LARGO_SUELO = 180, Z_CENTRO_SUELO = -10;
+  texS.repeat.set(6, 22 * LARGO_SUELO / 120);
+  const franja = new THREE.Mesh(new THREE.PlaneGeometry(34, LARGO_SUELO), new THREE.MeshStandardMaterial({ map: texS, roughness: 0.95 }));
+  franja.rotation.x = -Math.PI / 2; franja.position.set(0, 0.0, Z_CENTRO_SUELO); franja.receiveShadow = true; franja.userData.propio = true;
   g.add(marcar(franja));
   const texC = texturaSuelo(T.camino[0], T.camino[1], T.tipoCamino, 7);
-  texC.repeat.set(1.2, 24);
-  const camino = new THREE.Mesh(new THREE.PlaneGeometry(7.4, 120), new THREE.MeshStandardMaterial({ map: texC, roughness: 0.9 }));
-  camino.rotation.x = -Math.PI / 2; camino.position.set(0, 0.02, -40); camino.receiveShadow = true; camino.userData.propio = true;
+  texC.repeat.set(1.2, 24 * LARGO_SUELO / 120);
+  const camino = new THREE.Mesh(new THREE.PlaneGeometry(7.4, LARGO_SUELO), new THREE.MeshStandardMaterial({ map: texC, roughness: 0.9 }));
+  camino.rotation.x = -Math.PI / 2; camino.position.set(0, 0.02, Z_CENTRO_SUELO); camino.receiveShadow = true; camino.userData.propio = true;
   g.add(marcar(camino));
   E.suelos = [{ t: texS, largo: 120 / 22 }, { t: texC, largo: 120 / 24 }];
   // Bordillos de piedra a los dos lados (en fila, se desplazan).
-  if (yaCargado('piedra-1')) for (let i = 0; i < LARGO / 1.4; i++) for (const s of [-1, 1]) {
+  if (yaCargado('piedra-1')) for (let i = 0; i < LARGO_FILA / 1.4; i++) for (const s of [-1, 1]) {
     const p = copiaEstatica(i % 2 ? 'piedra-1' : 'piedra-2', 0.35 + r() * 0.2, false);
     if (!p) continue;
-    p.position.set(s * (3.85 + r() * 0.25), 0, Z_FIN - i * 1.4); p.rotation.y = r() * 6; p.userData.fila = true;
+    p.position.set(s * (3.85 + r() * 0.25), 0, Z_FIN - i * 1.4); p.rotation.y = r() * 6; p.userData.fila = true; p.userData.largo = LARGO_FILA;
     p.userData.modelo = i % 2 ? 'piedra-1' : 'piedra-2'; g.add(p);
+  }
+  // Bordillos fijos detrás de Lumi (no se ven en la partida: quedan detrás de la cámara; sí desde las cámaras de los jefes).
+  if (yaCargado('piedra-1')) for (let z = Z_FIN + 1.4, i = 0; z < 60; z += 1.4, i++) for (const s of [-1, 1]) {
+    const p = copiaEstatica(i % 2 ? 'piedra-1' : 'piedra-2', 0.35 + r() * 0.2, false);
+    if (!p) continue;
+    p.position.set(s * (3.85 + r() * 0.25), 0, z); p.rotation.y = r() * 6; g.add(marcar(p));
   }
   // Decorado a los lados.
   const cantidad = E.calidad === 'baja' ? 0.45 : 1;
@@ -1086,7 +1210,7 @@ export function congelar(si) {
 // ---------- jefes ----------
 export function crearJefe(color, semilla, estilo) {
   quitarJefe();
-  const alto = E.vertical ? 8.2 : 9.2;
+  const alto = E.vertical ? 11.6 : 12.4; // enormes: pueden salirse del ancho del camino (la cámara los encuadra)
   const a = copiaAnimada('jefe-' + E.tema, alto);
   if (!a) return;
   const vuela = !!a.buscar('Flying_Idle');
@@ -1097,9 +1221,10 @@ export function crearJefe(color, semilla, estilo) {
   g.scale.setScalar(0.01);
   E.escena.add(g);
   const acc = { quieto: a.buscar('Idle', 'Flying_Idle', 'Walk'), golpe: a.buscar('HitReact', 'HitRecieve'), ataque: a.buscar('Punch', 'Headbutt', 'Bite_Front', 'Weapon'), muerte: a.buscar('Death') };
-  E.jefe = { g, cuerpo: pivote, mixer: a.mixer, acc, actual: reproducir(acc.quieto, null), alto: alto + (vuela ? 1.4 : 0), col: color, nace: E.reloj, golpe: 0, ataca: 0, vencido: 0, cartel: null, escalaBase: 1 };
+  E.jefe = { g, cuerpo: pivote, mixer: a.mixer, acc, actual: reproducir(acc.quieto, null), alto: alto + (vuela ? 1.4 : 0), cima: alto + (vuela ? 2.2 : 0), col: color, nace: E.reloj, golpe: 0, ataca: 0, vencido: 0, cartel: null, escalaBase: 1 };
   emitir(new THREE.Vector3(0, 3, -15), 90, color, { vel: 9, vida: 1.3, tam: 0.9, grav: 1 });
   temblor(0.7);
+  encuadrarJefe();
 }
 // El jefe no lleva cartel: la palabra se ve en el panel de arriba (así nunca tapa al monstruo).
 export function cartelJefe() {}
@@ -1157,7 +1282,7 @@ function actualizar(dt, real) {
     for (const sl of E.suelos) sl.t.offset.y += dz / sl.largo;
     if (E.deslizables) for (const o of E.deslizables) {
       o.position.z += dz;
-      if (o.position.z > Z_FIN) { o.position.z -= LARGO; o.userData.crece = 0; }
+      if (o.position.z > Z_FIN) { o.position.z -= o.userData.largo || LARGO; o.userData.crece = 0; }
       if (o.userData.crece !== undefined) {
         o.userData.crece = Math.min(1, o.userData.crece + real * 1.3);
         o.scale.copy(o.userData.base).multiplyScalar(Math.max(0.01, o.userData.crece));
@@ -1256,7 +1381,7 @@ function actualizar(dt, real) {
       if (d > 1.7) quitarJefe();
     }
     if (E.jefe) {
-      j.g.scale.setScalar(Math.max(0.001, esc));
+      j.g.scale.setScalar(Math.max(0.001, esc * (j.escalaFit || 1)));
     }
   }
 

@@ -1,15 +1,16 @@
 // ¡Palabrones! · Lógica de partida: niveles normales, jefes, desafío infinito y entrenamiento.
 // El estado vive aquí (objetos planos); escena.js solo lo dibuja.
 
-import * as E from './escena.js?v=1.1.15';
-import { PALABRAS, FRASES, CATS, MUNDOS, explicarSuelta, explicarEnFrase } from './datos.js?v=1.1.15';
-import * as Pr from './progreso.js?v=1.1.15';
-import { sfx, musica, intensidad } from './audio.js?v=1.1.15';
+import * as E from './escena.js?v=1.1.16';
+import { PALABRAS, FRASES, CATS, MUNDOS, explicarSuelta, explicarEnFrase } from './datos.js?v=1.1.16';
+import * as Pr from './progreso.js?v=1.1.16';
+import { sfx, musica, intensidad } from './audio.js?v=1.1.16';
 
 const CARRILES = [-2.3, 0, 2.3];
 const Z_SALIDA = -27, Z_LLEGADA = -2.2;
 const DISTANCIA_DISENO = Z_LLEGADA - Z_SALIDA; // los tiempos de cada nivel se pensaron para esta distancia
 const PASO = 1.0;  // velocidad de los monstruos respecto al camino (m/s)
+const SEPARACION = 2.2; // metros mínimos entre un Palabrón y el que va delante (no se adelantan)
 const CORAZONES = 3;
 
 export const J = { activo: false, pausado: false };
@@ -220,11 +221,19 @@ function actualizar(dt, real) {
   const suelo = sueloAhora();
   E.default.avance = congelado ? 0 : suelo;
   let peligro = 0;
-  for (const m of J.monstruos) {
-    if (!m.vivo) continue;
+  // Nadie adelanta a nadie: el orden de llegada no cambia, así que la palabra a acertar nunca cambia de golpe porque un
+  // Palabrón veloz pase a otro. Se mueven de más cerca a más lejos de Lumi; el de detrás nunca pasa de (el de delante - SEPARACION)
+  // y, mientras lo alcanza, avanza a su mismo paso.
+  let delante = null;
+  for (const m of J.monstruos.filter((x) => x.vivo).sort((a, b) => b.z - a.z)) {
     // Al entrar en la zona de peligro cargan corriendo.
-    const paso = m.paso * (m.z > -9 ? 1.7 : 1);
-    if (!congelado) m.z += (suelo + paso) * dt;
+    let paso = m.paso * (m.z > -9 ? 1.7 : 1);
+    if (!congelado) {
+      const sigue = m.z + (suelo + paso) * dt;
+      const tope = delante ? delante.z - SEPARACION : Infinity;
+      if (sigue > tope) { m.z = Math.max(m.z, tope); paso = Math.min(paso, delante.pasoVisto ?? paso); } else m.z = sigue;
+    }
+    m.pasoVisto = paso; delante = m;
     E.moverMonstruo(m.id, m.x, m.z, congelado ? 0 : paso);
     // Zona de peligro: a menos de 9 m de Lumi abren la boca, rugen y la pantalla se tiñe de rojo.
     const pel = Math.max(0, Math.min(1, (m.z + 11) / (Z_LLEGADA + 11)));
@@ -406,6 +415,8 @@ function siguienteObjetivoJefe() {
   if (!j || J.terminado) return;
   if (!j.objetivos.length) return;
   j.actual = j.objetivos.shift();
+  if (j.preguntas) E.siguienteVistaJefe(); // en ordenador, cada pregunta del jefe se ve desde otra cámara
+  j.preguntas = (j.preguntas || 0) + 1;
   j.resto = j.tiempo;
   const f = FRASES[j.actual.fi], tok = f.tokens[j.actual.ti];
   E.cartelJefe(tok.t);

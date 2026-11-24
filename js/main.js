@@ -1,11 +1,11 @@
 // ¡Palabrones! · Interfaz: pantallas, menús, HUD, explicaciones, resultados y teclado.
-import * as E from './escena.js?v=1.1.15';
-import { J, empezar, lanzar, congelar, pausar, abandonar } from './juego.js?v=1.1.15';
-import * as Pr from './progreso.js?v=1.1.15';
-import { CATS, TRUCOS, MUNDOS, TIENDA, AVATARES, claveNivel } from './datos.js?v=1.1.15';
-import { iniciarAudio, musica, volumenes, sfx, precargarMusica } from './audio.js?v=1.1.15';
-import { decir, callar, activarVoz, desbloquearVoz } from './voz.js?v=1.1.15';
-import { dibujar as dibujarEtiquetas, limpiar as limpiarEtiquetas } from './etiquetas.js?v=1.1.15';
+import * as E from './escena.js?v=1.1.16';
+import { J, empezar, lanzar, congelar, pausar, abandonar } from './juego.js?v=1.1.16';
+import * as Pr from './progreso.js?v=1.1.16';
+import { CATS, TRUCOS, MUNDOS, TIENDA, AVATARES, claveNivel } from './datos.js?v=1.1.16';
+import { iniciarAudio, musica, volumenes, sfx, precargarMusica } from './audio.js?v=1.1.16';
+import { decir, callar, activarVoz, desbloquearVoz } from './voz.js?v=1.1.16';
+import { dibujar as dibujarEtiquetas, limpiar as limpiarEtiquetas } from './etiquetas.js?v=1.1.16';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -91,6 +91,7 @@ try {
   // Si el dispositivo no puede dibujar el look retro, se apaga y se recarga (el lienzo se crea distinto con él).
   E.default.alFalloRetro = () => { Pr.ajustes().retro = false; Pr.guardar(); location.reload(); };
   E.retro(!!Pr.ajustes().retro);
+  E.camaraJefe(Pr.ajustes().camJefe !== false);
   // Medidor de rendimiento opcional: añadir «?fps» a la dirección (fotogramas por segundo y el peor fotograma).
   if (/[?&]fps\b/.test(location.search)) {
     const d = document.createElement('div');
@@ -648,6 +649,7 @@ function pintarOpciones() {
   const a = Pr.ajustes();
   $('#o-musica').value = a.musica; $('#o-efectos').value = a.efectos;
   $('#o-retro').checked = !!a.retro;
+  $('#o-camjefe').checked = a.camJefe !== false;
   $('#o-voz').checked = a.voz; $('#o-velocidad').value = a.velocidad; textoVelocidad(a.velocidad);
   for (const b of $$('#o-calidad button')) b.classList.toggle('activo', b.dataset.v === a.calidad);
   $('#b-borrar').classList.toggle('oculto', !perfil() || perfil().invitado);
@@ -656,6 +658,9 @@ $('#o-musica').addEventListener('input', (e) => { Pr.ajustes().musica = +e.targe
 $('#o-efectos').addEventListener('input', (e) => { Pr.ajustes().efectos = +e.target.value; volumenes(Pr.ajustes().musica, Pr.ajustes().efectos); Pr.guardar(); });
 $('#o-efectos').addEventListener('change', () => sfx.acierto(3));
 // El look retro cambia cómo se crea el lienzo 3D: se aplica recargando (como la calidad).
+// La cámara panorámica solo existe en ordenador (pantalla no táctil): en el móvil se oculta el ajuste.
+if (matchMedia('(pointer: coarse)').matches && !matchMedia('(any-pointer: fine)').matches) $('#op-camjefe').classList.add('oculto');
+$('#o-camjefe').addEventListener('change', (e) => { Pr.ajustes().camJefe = e.target.checked; E.camaraJefe(e.target.checked); Pr.guardar(); });
 $('#o-retro').addEventListener('change', (e) => { Pr.ajustes().retro = e.target.checked; Pr.guardar(); location.reload(); });
 $('#o-voz').addEventListener('change', (e) => { Pr.ajustes().voz = e.target.checked; activarVoz(e.target.checked); Pr.guardar(); if (e.target.checked) decir('Hola. Así sonará la voz que explica.'); });
 function textoVelocidad(v) {

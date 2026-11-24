@@ -1,5 +1,22 @@
 # Cambios de ¡Palabrones!
 
+## v1.1.16 · 2026-11-24 · Jefes enormes, cámaras panorámicas y sin adelantamientos
+
+- Jefes finales mucho más grandes (se pueden salir del ancho del camino). La cámara se encuadra sola para que su cabeza
+  nunca quede tapada por el panel de la pregunta ni por la barra de vida.
+- Ordenador: cámaras panorámicas en los jefes. Cada pregunta se ve desde un punto de vista distinto (de lado, en tres
+  cuartos, desde detrás del jefe…), elevadas y con Lumi y el jefe a la vez para apreciar la diferencia de tamaño. Se
+  comprueba que ninguno de los dos queda detrás de los botones de respuesta, del panel o fuera de la pantalla (si una
+  cámara no lo cumple se salta) y se oculta el decorado que taparía a Lumi o al jefe. Se puede quitar en
+  Opciones («Cámara panorámica en los jefes»); en móvil y tablet no existe.
+- El camino, la franja de hierba y los bordillos de piedra se prolongan hasta el fondo y por detrás de Lumi, para que se vean
+  completos desde esas cámaras.
+- En los jefes con la cámara clásica, Lumi ya no queda tapada por los botones de respuesta siempre que quepa.
+- Los Palabrones ya no se adelantan unos a otros: el orden de llegada no cambia, así que la palabra a acertar nunca cambia
+  de golpe (antes un Palabrón veloz podía pasar a otro más lento y cambiar el objetivo).
+- Las palabras de los bocadillos ya no pierden los rabillos de letras como g, j, p, q o y: el rombo de la punta pasa por detrás
+  del texto.
+
 ## v1.1.15 · 2026-11-24 · Resolución correcta con la página alejada en el iPhone
 
 - Con el zoom de página de Safari reducido (por ejemplo, al 50 %), el iPhone dice que la pantalla mide el doble de
