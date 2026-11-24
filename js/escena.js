@@ -2,7 +2,7 @@
 // Personajes, monstruos y decorado son modelos GLB de Quaternius (CC0), en web/modelos.
 // El estado del juego vive en juego.js; aquí solo se dibuja (las mallas son una «vista»).
 
-import * as THREE from './lib/three.module.js?v=1.1.6';
+import * as THREE from './lib/three.module.js?v=1.1.7';
 import { GLTFLoader } from './lib/addons/loaders/GLTFLoader.js';
 import { clone as clonarEsqueleto } from './lib/addons/utils/SkeletonUtils.js';
 import { RoomEnvironment } from './lib/addons/environments/RoomEnvironment.js';
@@ -244,7 +244,7 @@ const MODELOS = new Map();
 const ALTURAS = new Map();
 export function cargar(nombre) {
   if (!MODELOS.has(nombre)) {
-    MODELOS.set(nombre, new Promise((ok, mal) => cargador.load(`modelos/${nombre}.glb?v=1.1.6`, ok, undefined, mal)).catch((e) => { console.warn('modelo', nombre, e); return null; }));
+    MODELOS.set(nombre, new Promise((ok, mal) => cargador.load(`modelos/${nombre}.glb?v=1.1.7`, ok, undefined, mal)).catch((e) => { console.warn('modelo', nombre, e); return null; }));
   }
   return MODELOS.get(nombre);
 }
@@ -352,7 +352,7 @@ export function iniciar(canvas, calidad) {
   r.localClippingEnabled = true; // el pelo de Lumi se recorta a la altura del ala del sombrero
   r.setPixelRatio(Math.min(window.devicePixelRatio || 1, calidad === 'alta' ? 1.25 : 1));
   r.setSize(innerWidth, innerHeight, false);
-  r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 1.0;
+  r.toneMapping = THREE.NoToneMapping; r.toneMappingExposure = 1.0; // sin mapa de tonos: colores y contraste tal cual
   r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFShadowMap;
   E.renderer = r;
   texBrillo = texturaBrillo();

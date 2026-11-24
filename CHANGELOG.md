@@ -1,5 +1,9 @@
 # Cambios de ¡Palabrones!
 
+## v1.1.7 · 2026-11-24 · Colores sin mapa de tonos
+
+- Se quita el mapa de tonos (ACES) del dibujo 3D: los colores salen más intensos y con más contraste.
+
 ## v1.1.6 · 2026-11-24 · Look retro CRT
 
 - Nuevo ajuste en Opciones, «Look retro (pixelado CRT)»: el dibujo 3D se ve con píxeles grandes (unas 240 líneas
