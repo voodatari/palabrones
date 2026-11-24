@@ -1,5 +1,12 @@
 # Cambios de ¡Palabrones!
 
+## v1.1.15 · 2026-11-24 · Resolución correcta con la página alejada en el iPhone
+
+- Con el zoom de página de Safari reducido (por ejemplo, al 50 %), el iPhone dice que la pantalla mide el doble de
+  píxeles web pero mantiene la misma densidad, y el juego dibujaba el doble de píxeles por lado de los que la pantalla
+  puede mostrar (4 veces el trabajo): 780×1398 sin look retro y 2340×4194 con él. Ahora se tiene en cuenta ese zoom en
+  las pantallas táctiles y se dibuja a la resolución real (390×699 y 1170×2097 en ese caso).
+
 ## v1.1.14 · 2026-11-24 · Look retro en iPhone y menos trabajo por fotograma
 
 - Look retro en iPhone y iPad: Safari no respeta el escalado «pixelado» en los lienzos WebGL y emborronaba la imagen,
