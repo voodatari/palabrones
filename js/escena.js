@@ -2,7 +2,7 @@
 // Personajes, monstruos y decorado son modelos GLB de Quaternius (CC0), en web/modelos.
 // El estado del juego vive en juego.js; aquí solo se dibuja (las mallas son una «vista»).
 
-import * as THREE from './lib/three.module.js?v=1.1.5';
+import * as THREE from './lib/three.module.js?v=1.1.6';
 import { GLTFLoader } from './lib/addons/loaders/GLTFLoader.js';
 import { clone as clonarEsqueleto } from './lib/addons/utils/SkeletonUtils.js';
 import { RoomEnvironment } from './lib/addons/environments/RoomEnvironment.js';
@@ -244,7 +244,7 @@ const MODELOS = new Map();
 const ALTURAS = new Map();
 export function cargar(nombre) {
   if (!MODELOS.has(nombre)) {
-    MODELOS.set(nombre, new Promise((ok, mal) => cargador.load(`modelos/${nombre}.glb?v=1.1.5`, ok, undefined, mal)).catch((e) => { console.warn('modelo', nombre, e); return null; }));
+    MODELOS.set(nombre, new Promise((ok, mal) => cargador.load(`modelos/${nombre}.glb?v=1.1.6`, ok, undefined, mal)).catch((e) => { console.warn('modelo', nombre, e); return null; }));
   }
   return MODELOS.get(nombre);
 }
@@ -402,7 +402,7 @@ export function iniciar(canvas, calidad) {
     const dt = ahora < E.pausaGolpeHasta ? real * 0.06 : real;
     if (E.alActualizar) E.alActualizar(dt, real);
     actualizar(dt, real);
-    if (E.compositor) E.compositor.render(); else r.render(E.escena, E.camara);
+    pintar(r);
     if (E.alDibujar) E.alDibujar(real); // etiquetas de las palabras, ya con la cámara de este fotograma
   });
   Object.assign(window, { renderer: r, scene: E.escena });
@@ -429,6 +429,55 @@ export async function prepararTema(nombre, alProgreso) {
   if (nuevo) await precompilar();
 }
 
+// ---------- Look retro: pixelado + CRT (solo el dibujo 3D; los menús son HTML y no cambian) ----------
+const RETRO_LINEAS = 240; // líneas de la imagen en pantallas grandes (en las estrechas, el píxel es de 2 px)
+const RETRO = { activo: false, comp: null, uni: null, escena: null, cam: null, w: 2, h: 2 };
+const CRT_FRAG = `
+uniform sampler2D tDiffuse; uniform vec2 baja;
+varying vec2 vUv;
+vec3 muestra(vec2 uv) { vec2 p = (floor(uv * baja) + 0.5) / baja; return texture2D(tDiffuse, clamp(p, 0.0, 1.0)).rgb; }
+// Todo está compensado para que el brillo medio no cambie: solo se reparte distinto dentro de cada píxel.
+void main() {
+  vec2 uv = vUv;
+  vec3 c = muestra(uv);
+  vec3 g = 0.5 * (muestra(uv + vec2(1.0 / baja.x, 0.0)) + muestra(uv - vec2(1.0 / baja.x, 0.0)));
+  c = mix(c, g, 0.2);                                        // leve emborronado horizontal
+  float n = fract(52.9829189 * fract(dot(floor(uv * baja), vec2(0.06711056, 0.00583715))));
+  c = floor(c * 31.0 + n) / 31.0;                            // 5 bits por canal con tramado
+  vec2 f = fract(uv * baja);
+  float sl = 1.0 + 0.3 * (sin(f.y * 3.14159265) - 0.63662);  // líneas de barrido (media 1)
+  float sub = floor(f.x * 3.0);
+  vec3 m = vec3(1.0) + 0.2 * (vec3(float(sub < 0.5), float(sub > 0.5 && sub < 1.5), float(sub > 1.5)) - 0.33333); // franjas RGB (media 1)
+  gl_FragColor = vec4(clamp(c * sl * m, 0.0, 1.0), 1.0);
+}`;
+function prepararRetro() {
+  if (RETRO.uni) return;
+  RETRO.uni = { tDiffuse: { value: null }, baja: { value: new THREE.Vector2(2, 2) } };
+  const mat = new THREE.ShaderMaterial({ uniforms: RETRO.uni, vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }', fragmentShader: CRT_FRAG, depthTest: false, depthWrite: false, toneMapped: false });
+  RETRO.escena = new THREE.Scene(); RETRO.cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+  const q = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), mat); q.frustumCulled = false; RETRO.escena.add(q);
+  if (!E.compositor) { // sin efectos de imagen: un compositor mínimo que deja la imagen ya con su tono y color finales
+    RETRO.comp = new EffectComposer(E.renderer);
+    RETRO.comp.addPass(new RenderPass(E.escena, E.camara));
+    RETRO.comp.addPass(new OutputPass());
+  }
+}
+export function retro(si) {
+  if (!!si === RETRO.activo || !E.renderer) return;
+  if (si) prepararRetro();
+  RETRO.activo = !!si; E.retro = RETRO.activo;
+  const comp = E.compositor || RETRO.comp;
+  if (comp) comp.renderToScreen = !si;
+  ajustarTamano();
+}
+function pintar(r) {
+  if (!RETRO.activo) { if (E.compositor) E.compositor.render(); else r.render(E.escena, E.camara); return; }
+  const comp = E.compositor || RETRO.comp;
+  comp.render();
+  RETRO.uni.tDiffuse.value = comp.readBuffer.texture;
+  r.setRenderTarget(null); r.render(RETRO.escena, RETRO.cam);
+}
+
 function ajustarTamano() {
   const w = innerWidth, h = innerHeight, asp = w / h;
   E.camara.aspect = asp;
@@ -437,8 +486,18 @@ function ajustarTamano() {
   E.camara.fov = Math.min(vfov, 76);
   E.camara.updateProjectionMatrix();
   E.renderer.setSize(w, h, false);
-  if (E.compositor) { E.compositor.setSize(w, h); }
-  if (P.puntos) P.puntos.material.uniforms.escalaPx.value = h * 0.55 * E.renderer.getPixelRatio();
+  const comp = E.compositor || RETRO.comp, pr = E.renderer.getPixelRatio();
+  if (RETRO.activo && comp) {
+    // Look retro: la escena se dibuja con píxeles grandes y luego se amplía con el filtro CRT.
+    const pix = w < 700 || h < 480 ? 2 : Math.max(2, Math.round(h / RETRO_LINEAS)); // móvil: píxeles de 2 px (más resolución)
+    RETRO.w = Math.max(2, Math.round(w / pix)); RETRO.h = Math.max(2, Math.round(h / pix));
+    comp.setPixelRatio(1); comp.setSize(RETRO.w, RETRO.h);
+    RETRO.uni.baja.value.set(RETRO.w, RETRO.h);
+    if (P.puntos) P.puntos.material.uniforms.escalaPx.value = RETRO.h * 0.55;
+  } else {
+    if (comp) { comp.setPixelRatio(pr); comp.setSize(w, h); }
+    if (P.puntos) P.puntos.material.uniforms.escalaPx.value = h * 0.55 * pr;
+  }
   E.vertical = asp < 0.9;
   vista(E.vista, true);
 }
@@ -681,6 +740,8 @@ function crearHeroe() {
   const sombreroSitio = new THREE.Group(), vara = new THREE.Group(), planoPelo = new THREE.Plane(), planoPelo2 = new THREE.Plane();
   const mascotaSitio = new THREE.Group(); grupo.add(mascotaSitio);
   grupo.position.set(0, 0, 1.6);
+  // El círculo del suelo y la sombra no se enseñan hasta que todo ha cargado (mostrarHeroe).
+  aura.visible = false; sombra.visible = false;
   return { grupo, cuerpo, aura, orbe, halo, sombreroSitio, vara, planoPelo, planoPelo2, mascotaSitio, sombra, lanzar: 0, herido: 0, salto: 0, triste: 0, rotObj: 0, aspecto: null, mascota: null, modelo: null, actual: null };
 }
 
@@ -743,6 +804,7 @@ export function aspectoHeroe(a, colorHex) {
   h.mascotaSitio.clear(); h.mascota = null;
   if (a.mascota && MASCOTAS[a.mascota]) { h.mascota = MASCOTAS[a.mascota](); h.mascotaSitio.add(h.mascota); }
 }
+export function mostrarHeroe() { const h = E.heroe; if (h) { h.aura.visible = true; h.sombra.visible = true; } }
 export function colorVarita(hex) { E.heroe.orbe.material.color.set(hex); E.heroe.halo.material.color.set(hex); }
 
 // ---------- Palabrones ----------

@@ -1,5 +1,13 @@
 # Cambios de ¡Palabrones!
 
+## v1.1.6 · 2026-11-24 · Look retro CRT
+
+- Nuevo ajuste en Opciones, «Look retro (pixelado CRT)»: el dibujo 3D se ve con píxeles grandes (unas 240 líneas
+  en pantallas grandes; en el móvil el píxel es de 2 px para no perder detalle), líneas de barrido y franjas de
+  color, sin curvar la imagen y sin cambiar el brillo medio. Solo afecta al 3D: los menús, botones y textos
+  siguen nítidos. Se cambia al momento y se recuerda. Además va más ligero (se dibuja en menos píxeles).
+- El círculo y la sombra de Lumi ya no se ven mientras el juego carga: aparecen cuando todo está listo.
+
 ## v1.1.5 · 2026-11-24 · Pelo y sombrero de Lumi
 
 - El pelo de Lumi ya no atraviesa el sombrero de mago por detrás ni deja una franja blanca bajo el ala por delante.

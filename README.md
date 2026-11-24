@@ -53,8 +53,8 @@ pueden compartir uno, cada uno con su perfil). Borrar los datos del navegador bo
   (por ejemplo, *canto*).
 - Las palabras sueltas son siempre de una sola clase sin discusión; el juego evita repetirlas en
   una misma partida y entre partidas seguidas.
-- Música de fondo distinta en cada mundo, voz del navegador para las explicaciones y velocidad
-  general ajustable en *Opciones*.
+- Música de fondo distinta en cada mundo, voz del navegador para las explicaciones, velocidad
+  general ajustable y un **look retro (pixelado CRT)** opcional para el dibujo 3D, todo en *Opciones*.
 
 ## Para docentes y desarrolladores
 

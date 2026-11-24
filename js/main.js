@@ -1,11 +1,11 @@
 // ¡Palabrones! · Interfaz: pantallas, menús, HUD, explicaciones, resultados y teclado.
-import * as E from './escena.js?v=1.1.5';
-import { J, empezar, lanzar, congelar, pausar, abandonar } from './juego.js?v=1.1.5';
-import * as Pr from './progreso.js?v=1.1.5';
-import { CATS, TRUCOS, MUNDOS, TIENDA, AVATARES, claveNivel } from './datos.js?v=1.1.5';
-import { iniciarAudio, musica, volumenes, sfx, precargarMusica } from './audio.js?v=1.1.5';
-import { decir, callar, activarVoz, desbloquearVoz } from './voz.js?v=1.1.5';
-import { dibujar as dibujarEtiquetas, limpiar as limpiarEtiquetas } from './etiquetas.js?v=1.1.5';
+import * as E from './escena.js?v=1.1.6';
+import { J, empezar, lanzar, congelar, pausar, abandonar } from './juego.js?v=1.1.6';
+import * as Pr from './progreso.js?v=1.1.6';
+import { CATS, TRUCOS, MUNDOS, TIENDA, AVATARES, claveNivel } from './datos.js?v=1.1.6';
+import { iniciarAudio, musica, volumenes, sfx, precargarMusica } from './audio.js?v=1.1.6';
+import { decir, callar, activarVoz, desbloquearVoz } from './voz.js?v=1.1.6';
+import { dibujar as dibujarEtiquetas, limpiar as limpiarEtiquetas } from './etiquetas.js?v=1.1.6';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -88,6 +88,7 @@ function calidad() {
 let listo3D = false;
 try {
   E.iniciar($('#c3d'), calidad());
+  E.retro(!!Pr.ajustes().retro);
   E.default.alDibujar = dibujarEtiquetas;
   E.aspectoHeroe({ color: 'violeta', sombrero: 'mago', mascota: 'ninguna' }, '#a78bfa');
   E.vista('titulo', true);
@@ -106,6 +107,7 @@ async function precargarInicio() {
   $('#b-empezar').disabled = true;
   $('#carga').classList.remove('oculto');
   await E.prepararTema('pradera', (p) => progresoCarga(p, 'Cargando el mundo…'));
+  E.mostrarHeroe(); // el círculo de Lumi no se ve mientras carga
   $('#b-empezar').disabled = false;
   $('#carga').classList.add('oculto');
   $('#aviso-carga').textContent = '';
@@ -630,6 +632,7 @@ $('#b-clase').addEventListener('click', () => {
 function pintarOpciones() {
   const a = Pr.ajustes();
   $('#o-musica').value = a.musica; $('#o-efectos').value = a.efectos;
+  $('#o-retro').checked = !!a.retro;
   $('#o-voz').checked = a.voz; $('#o-velocidad').value = a.velocidad; textoVelocidad(a.velocidad);
   for (const b of $$('#o-calidad button')) b.classList.toggle('activo', b.dataset.v === a.calidad);
   $('#b-borrar').classList.toggle('oculto', !perfil() || perfil().invitado);
@@ -637,6 +640,7 @@ function pintarOpciones() {
 $('#o-musica').addEventListener('input', (e) => { Pr.ajustes().musica = +e.target.value; volumenes(Pr.ajustes().musica, Pr.ajustes().efectos); Pr.guardar(); });
 $('#o-efectos').addEventListener('input', (e) => { Pr.ajustes().efectos = +e.target.value; volumenes(Pr.ajustes().musica, Pr.ajustes().efectos); Pr.guardar(); });
 $('#o-efectos').addEventListener('change', () => sfx.acierto(3));
+$('#o-retro').addEventListener('change', (e) => { Pr.ajustes().retro = e.target.checked; E.retro(e.target.checked); Pr.guardar(); });
 $('#o-voz').addEventListener('change', (e) => { Pr.ajustes().voz = e.target.checked; activarVoz(e.target.checked); Pr.guardar(); if (e.target.checked) decir('Hola. Así sonará la voz que explica.'); });
 function textoVelocidad(v) {
   const n = v <= 0.75 ? 'Tranquila' : v < 0.95 ? 'Suave' : v <= 1.05 ? 'Normal' : v <= 1.3 ? 'Rápida' : 'Trepidante';

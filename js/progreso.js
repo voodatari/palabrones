@@ -2,7 +2,7 @@
 // clase de palabra, logros, misiones del día, racha de días, repaso de fallos e historial.
 // Se guarda en el navegador (localStorage) con versión y copia de seguridad.
 
-import { MUNDOS, claveNivel, TIENDA } from './datos.js?v=1.1.5';
+import { MUNDOS, claveNivel, TIENDA } from './datos.js?v=1.1.6';
 
 const CLAVE = 'palabrones.partida';
 const VERSION = 1;
@@ -64,7 +64,7 @@ function hoy() { const d = new Date(); return `${d.getFullYear()}-${String(d.get
 function diasEntre(a, b) { return Math.round((new Date(b) - new Date(a)) / 86400000); }
 
 function vacio() {
-  return { version: VERSION, perfiles: [], activo: null, ajustes: { musica: 0.7, efectos: 0.8, voz: true, calidad: 'auto', velocidad: 1.6, velBase: 2 } };
+  return { version: VERSION, perfiles: [], activo: null, ajustes: { musica: 0.7, efectos: 0.8, voz: true, calidad: 'auto', velocidad: 1.6, velBase: 2, retro: false } };
 }
 
 function nuevoPerfil(nombre, avatar, invitado = false) {
