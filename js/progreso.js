@@ -2,7 +2,7 @@
 // clase de palabra, logros, misiones del día, racha de días, repaso de fallos e historial.
 // Se guarda en el navegador (localStorage) con versión y copia de seguridad.
 
-import { MUNDOS, claveNivel, TIENDA } from './datos.js?v=1.1.18';
+import { MUNDOS, claveNivel, TIENDA } from './datos.js?v=1.1.19';
 
 const CLAVE = 'palabrones.partida';
 const VERSION = 1;
@@ -34,6 +34,7 @@ export const LOGROS = [
   { id: 'jefe2', icono: '🌵', nombre: 'Cactus callado', desc: 'Vence al Cactoro Farfullón.' },
   { id: 'jefe3', icono: '❄️', nombre: 'Yeti derretido', desc: 'Vence al Yeti Trabalenguas.' },
   { id: 'jefe4', icono: '🐉', nombre: 'Orden en el reino', desc: 'Vence al Dragón Revoltijo.' },
+  { id: 'final', icono: '🏆', nombre: 'Gran Maestro de las Palabras', desc: 'Supera todas las fases y salva el reino.' },
   { id: 'oroS', icono: '🔵', nombre: 'Oro en sustantivos', desc: 'Dominio de oro en sustantivos.' },
   { id: 'oroA', icono: '🟢', nombre: 'Oro en adjetivos', desc: 'Dominio de oro en adjetivos.' },
   { id: 'oroV', icono: '🔴', nombre: 'Oro en verbos', desc: 'Dominio de oro en verbos.' },
@@ -72,7 +73,7 @@ function nuevoPerfil(nombre, avatar, invitado = false) {
     id: invitado ? 'invitado' : 'p' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36),
     invitado, nombre, avatar, creado: hoy(),
     xp: 0, nivel: 1, monedas: 0, monedasTotal: 0,
-    estrellas: {}, desbloqueado: 1, jefes: {},
+    estrellas: {}, desbloqueado: 1, jefes: {}, finalVisto: null,
     stats: { S: { ok: 0, total: 0 }, A: { ok: 0, total: 0 }, V: { ok: 0, total: 0 } },
     ventana: { S: [], A: [], V: [] },
     fallos: {}, superadas: 0, camaleones: 0,
@@ -266,6 +267,7 @@ export function sumarXP(xp, eventos) {
 export function sumarMonedas(n) { P.perfil.monedas += n; P.perfil.monedasTotal += n; }
 
 // Fin de un nivel de la campaña (o de un desafío/entrenamiento).
+export const PREMIO_FINAL = 300; // monedas por vencer al último jefe por primera vez
 export function terminarPartida(r) {
   // r: { modo, mundo, nivel, ok, total, porCat, estrellas, superado, perfecto, rapidos, segundos, vencidos }
   const p = P.perfil, eventos = [];
@@ -273,7 +275,7 @@ export function terminarPartida(r) {
   p.sesiones.push({ f: hoy(), modo: r.modo, clave: r.modo === 'campana' ? claveNivel(r.mundo, r.nivel) : r.modo, ok: r.ok, total: r.total, porCat: r.porCat });
   if (p.sesiones.length > 60) p.sesiones.shift();
   let xp = r.ok * 10, monedas = r.ok;
-  let mejora = false;
+  let mejora = false, final = null;
   if (r.modo === 'campana' && r.superado) {
     const k = claveNivel(r.mundo, r.nivel);
     const antes = p.estrellas[k] || 0;
@@ -283,6 +285,11 @@ export function terminarPartida(r) {
     const indice = r.mundo * 4 + r.nivel + 1;
     if (indice + 1 > p.desbloqueado) p.desbloqueado = Math.min(indice + 1, MUNDOS.length * 4);
     if (r.nivel === 3) { if (!p.jefes[r.mundo]) monedas += 40; p.jefes[r.mundo] = true; logro('jefe' + r.mundo, eventos); }
+    // Final del juego: vencer al último jefe. La primera vez da un premio y el logro de Gran Maestro.
+    if (r.nivel === 3 && r.mundo === MUNDOS.length - 1) {
+      final = { primera: !p.finalVisto, premio: PREMIO_FINAL };
+      if (!p.finalVisto) { p.finalVisto = hoy(); monedas += PREMIO_FINAL; logro('final', eventos); }
+    }
     avanzarMision('niveles', 1, eventos);
     if (r.estrellas === 3) avanzarMision('tres', 1, eventos);
     if (r.perfecto) logro('perfecto', eventos);
@@ -299,7 +306,7 @@ export function terminarPartida(r) {
   sumarMonedas(monedas);
   sumarXP(xp, eventos);
   guardar();
-  return { xp, monedas, mejora, eventos };
+  return { xp, monedas, mejora, eventos, final };
 }
 
 // ---------- tienda ----------

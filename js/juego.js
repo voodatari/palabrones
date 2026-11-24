@@ -1,10 +1,10 @@
 // ¡Palabrones! · Lógica de partida: niveles normales, jefes, desafío infinito y entrenamiento.
 // El estado vive aquí (objetos planos); escena.js solo lo dibuja.
 
-import * as E from './escena.js?v=1.1.18';
-import { PALABRAS, FRASES, CATS, MUNDOS, explicarSuelta, explicarEnFrase } from './datos.js?v=1.1.18';
-import * as Pr from './progreso.js?v=1.1.18';
-import { sfx, musica, intensidad } from './audio.js?v=1.1.18';
+import * as E from './escena.js?v=1.1.19';
+import { PALABRAS, FRASES, CATS, MUNDOS, explicarSuelta, explicarEnFrase } from './datos.js?v=1.1.19';
+import * as Pr from './progreso.js?v=1.1.19';
+import { sfx, musica, intensidad } from './audio.js?v=1.1.19';
 
 const CARRILES = [-2.3, 0, 2.3];
 const Z_SALIDA = -27, Z_LLEGADA = -2.2;

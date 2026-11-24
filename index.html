@@ -12,8 +12,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Lilita+One&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/estilo.css?v=1.1.18">
-  <script src="js/escala.js?v=1.1.18"></script>
+  <link rel="stylesheet" href="css/estilo.css?v=1.1.19">
+  <script src="js/escala.js?v=1.1.19"></script>
 </head>
 <body>
   <canvas id="c3d" aria-hidden="true"></canvas>
@@ -196,7 +196,7 @@
       <label class="opcion opcion-sw"><span><b>Look retro (pixelado CRT)</b><small>Solo el dibujo 3D: píxeles grandes y líneas de pantalla antigua. Los menús no cambian. Al cambiarlo se recarga el juego.</small></span><input id="o-retro" type="checkbox" class="interruptor"></label>
       <label class="opcion opcion-sw" id="op-camjefe"><span><b>Cámara panorámica en los jefes</b><small>Solo en ordenador: la cámara se coloca de lado para ver a Lumi y al jefe a la vez y comparar su tamaño.</small></span><input id="o-camjefe" type="checkbox" class="interruptor"></label>
       <div class="fila-botones"><button id="b-borrar" class="btn btn-rojo btn-peq">Borrar este jugador</button></div>
-      <p class="nota creditos">¡Palabrones! v1.1.18 · Juego de aula de Lengua · Gráficos 3D con three.js (MIT) · Modelos 3D de Quaternius (CC0) · Música de Pixabay o generada en el navegador.</p>
+      <p class="nota creditos">¡Palabrones! v1.1.19 · Juego de aula de Lengua · Gráficos 3D con three.js (MIT) · Modelos 3D de Quaternius (CC0) · Música de Pixabay o generada en el navegador.</p>
     </div>
   </section>
 
@@ -262,6 +262,28 @@
     </div>
   </section>
 
+  <!-- ===== FINAL DEL JUEGO: se muestra al vencer al último jefe ===== -->
+  <section id="p-final" class="pantalla">
+    <div id="final-lluvia" class="final-lluvia" aria-hidden="true"></div>
+    <div class="panel panel-final ajustar">
+      <p class="final-trofeo" aria-hidden="true">🏆</p>
+      <h1 class="final-titulo">¡ENHORABUENA!</h1>
+      <p id="final-nombre" class="final-nombre"></p>
+      <p class="final-texto">Has derrotado al <b>Dragón Revoltijo</b> y has devuelto el orden al Reino de las Palabras. ¡Los Palabrones ya saben quién manda!</p>
+      <div class="diploma">
+        <small>Diploma de</small>
+        <b>Gran Maestro de las Palabras</b>
+        <div class="dip-datos">
+          <span><i>⭐</i><b id="final-estrellas">0</b><small>estrellas</small></span>
+          <span><i>🐉</i><b id="final-vencidos">0</b><small>Palabrones</small></span>
+          <span><i>🎓</i><b id="final-rango">Nv 1</b><small id="final-rango-nombre"></small></span>
+        </div>
+      </div>
+      <p id="final-premio" class="final-premio oculto">🎁 ¡Premio de campeón! <b>+<span id="final-monedas">300</span> monedas</b> y logro nuevo</p>
+      <button id="final-vale" class="btn btn-oro btn-grande">¡Hurra! 🎉</button>
+    </div>
+  </section>
+
   <!-- ===== VENTANAS ===== -->
   <div id="m-intro" class="modal">
     <div class="panel ajustar">
@@ -323,7 +345,7 @@
   <div id="avisos" class="avisos" aria-live="polite"></div>
   <div id="popups" class="popups"></div>
 
-  <script type="importmap">{ "imports": { "three": "./js/lib/three.module.js?v=1.1.18" } }</script>
-  <script type="module" src="js/main.js?v=1.1.18"></script>
+  <script type="importmap">{ "imports": { "three": "./js/lib/three.module.js?v=1.1.19" } }</script>
+  <script type="module" src="js/main.js?v=1.1.19"></script>
 </body>
 </html>

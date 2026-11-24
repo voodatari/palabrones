@@ -1,11 +1,11 @@
 // ¡Palabrones! · Interfaz: pantallas, menús, HUD, explicaciones, resultados y teclado.
-import * as E from './escena.js?v=1.1.18';
-import { J, empezar, lanzar, congelar, pausar, abandonar } from './juego.js?v=1.1.18';
-import * as Pr from './progreso.js?v=1.1.18';
-import { CATS, TRUCOS, MUNDOS, TIENDA, AVATARES, claveNivel } from './datos.js?v=1.1.18';
-import { iniciarAudio, musica, volumenes, sfx, precargarMusica } from './audio.js?v=1.1.18';
-import { decir, callar, activarVoz, desbloquearVoz } from './voz.js?v=1.1.18';
-import { dibujar as dibujarEtiquetas, limpiar as limpiarEtiquetas } from './etiquetas.js?v=1.1.18';
+import * as E from './escena.js?v=1.1.19';
+import { J, empezar, lanzar, congelar, pausar, abandonar } from './juego.js?v=1.1.19';
+import * as Pr from './progreso.js?v=1.1.19';
+import { CATS, TRUCOS, MUNDOS, TIENDA, AVATARES, claveNivel } from './datos.js?v=1.1.19';
+import { iniciarAudio, musica, volumenes, sfx, precargarMusica } from './audio.js?v=1.1.19';
+import { decir, callar, activarVoz, desbloquearVoz } from './voz.js?v=1.1.19';
+import { dibujar as dibujarEtiquetas, limpiar as limpiarEtiquetas } from './etiquetas.js?v=1.1.19';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -59,7 +59,7 @@ function mostrar(id) {
   for (const p of $$('.pantalla')) p.classList.toggle('activa', p.id === id);
   pantalla = id;
   if (id !== 'p-juego') limpiarBanner();
-  if (id !== 'p-juego' && id !== 'p-resultado') E.vista('menu');
+  if (id !== 'p-juego' && id !== 'p-resultado' && id !== 'p-final') E.vista('menu');
   requestAnimationFrame(ajustarTodo);
 }
 function abrir(id) { $('#' + id).classList.add('activa'); requestAnimationFrame(ajustarTodo); }
@@ -440,7 +440,42 @@ function cerrarExplicacion() {
 $('#ex-vale').addEventListener('click', cerrarExplicacion);
 
 // ---------- resultados ----------
+// Final del juego: al vencer al último jefe hay una fiesta (fuegos artificiales, confeti, fanfarria, diploma) antes de los resultados.
+const esFinalDelJuego = (r) => r.modo === 'campana' && r.superado && r.mundo === MUNDOS.length - 1 && r.nivel === 3;
+let resultadoFinal = null;
+function mostrarFinal(r) {
+  const p = perfil(); resultadoFinal = r;
+  mostrar('p-final'); E.vista('final');
+  $('#final-nombre').textContent = `${p.avatar} ${p.nombre}`;
+  $('#final-estrellas').textContent = `${Pr.estrellasTotales(p)}/${MUNDOS.length * 12}`;
+  $('#final-vencidos').textContent = p.vencidos.toLocaleString('es-ES');
+  $('#final-rango').textContent = 'Nv ' + p.nivel; $('#final-rango-nombre').textContent = Pr.rango(p.nivel).nombre;
+  const primera = !!(r.final && r.final.primera);
+  $('#final-premio').classList.toggle('oculto', !primera);
+  if (primera) $('#final-monedas').textContent = r.final.premio;
+  // Lluvia de confeti en pantalla (emojis que caen).
+  const lluvia = $('#final-lluvia'); lluvia.textContent = '';
+  const emojis = ['🎉', '✨', '⭐', '🎈', '🎊', '💫', '🌟', '🎆'];
+  const n = matchMedia('(prefers-reduced-motion: reduce)').matches ? 8 : 46;
+  for (let i = 0; i < n; i++) {
+    const e = document.createElement('span');
+    e.textContent = emojis[i % emojis.length];
+    e.style.cssText = `left:${Math.random() * 100}%;animation-duration:${4 + Math.random() * 4}s;animation-delay:${-Math.random() * 8}s;font-size:${1.2 + Math.random() * 1.6}rem`;
+    lluvia.appendChild(e);
+  }
+  E.fiesta(true); E.default.alFuego = () => sfx.fuego();
+  sfx.fanfarria(); musica('castillo');
+  decir(`¡Enhorabuena, ${p.nombre}! Has derrotado al Dragón Revoltijo y has devuelto el orden al Reino de las Palabras. ¡Eres un gran maestro de las palabras!`);
+  requestAnimationFrame(ajustarTodo);
+}
+$('#final-vale').addEventListener('click', () => {
+  sfx.click(); callar();
+  E.fiesta(false); E.default.alFuego = null; $('#final-lluvia').textContent = '';
+  const r = resultadoFinal; resultadoFinal = null;
+  if (r) mostrarResultado(Object.assign({}, r, { finalVisto: true }));
+});
 function mostrarResultado(r) {
+  if (esFinalDelJuego(r) && !r.finalVisto) { mostrarFinal(r); return; }
   const p = perfil();
   mostrar('p-resultado');
   E.vista('resultado');

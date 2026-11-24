@@ -2,7 +2,7 @@
 // Personajes, monstruos y decorado son modelos GLB de Quaternius (CC0), en web/modelos.
 // El estado del juego vive en juego.js; aquí solo se dibuja (las mallas son una «vista»).
 
-import * as THREE from './lib/three.module.js?v=1.1.18';
+import * as THREE from './lib/three.module.js?v=1.1.19';
 import { GLTFLoader } from './lib/addons/loaders/GLTFLoader.js';
 import { clone as clonarEsqueleto } from './lib/addons/utils/SkeletonUtils.js';
 import { mergeGeometries } from './lib/addons/utils/BufferGeometryUtils.js';
@@ -246,7 +246,7 @@ const MODELOS = new Map();
 const ALTURAS = new Map();
 export function cargar(nombre) {
   if (!MODELOS.has(nombre)) {
-    MODELOS.set(nombre, new Promise((ok, mal) => cargador.load(`modelos/${nombre}.glb?v=1.1.18`, ok, undefined, mal)).catch((e) => { console.warn('modelo', nombre, e); return null; }));
+    MODELOS.set(nombre, new Promise((ok, mal) => cargador.load(`modelos/${nombre}.glb?v=1.1.19`, ok, undefined, mal)).catch((e) => { console.warn('modelo', nombre, e); return null; }));
   }
   return MODELOS.get(nombre);
 }
@@ -565,6 +565,7 @@ export function vista(v, inmediato = false) {
   if (v === 'menu') { E.camPosObj.set(vert ? 0.6 : 1.4, vert ? 2.3 : 2.2, vert ? 8.4 : 7.8); E.camMiraObj.set(vert ? 0.2 : 2.5, vert ? -0.2 : 1.3, 1.4); }
   else if (v === 'titulo') { E.camPosObj.set(0.4, 2.0, vert ? 8.6 : 7.4); E.camMiraObj.set(0, vert ? -0.4 : -0.1, 1.4); }
   else if (v === 'resultado') { E.camPosObj.set(vert ? 0 : 1.4, 2.2, vert ? 10.5 : 7.8); E.camMiraObj.set(vert ? 0 : 2.5, vert ? -1.6 : 1.3, 1.4); } // Lumi entera arriba (móvil) o a la izquierda, con las ventanas debajo o a la derecha
+  else if (v === 'final') { E.camPosObj.set(vert ? 0 : 1.2, vert ? 1.8 : 1.4, vert ? 11.5 : 8.2); E.camMiraObj.set(vert ? 0 : 2.4, vert ? -1.4 : 3.2, 1.4); } // fiesta: Lumi abajo y el cielo con los fuegos artificiales
   else if (v === 'jefe') {
     if (jefePanoramico()) colocarVistaJefe();
     else { E.camPosObj.set(0, vert ? 4.4 : 3.8, vert ? 13 : 10.5); E.camMiraObj.set(0, vert ? 4.6 : 5.2, -12); encuadrarJefe(); }
@@ -1201,6 +1202,20 @@ export function heroeHerido() {
   emitir(h.grupo.position.clone().add(new THREE.Vector3(0, 1.2, 0)), 24, '#ff4d6d', { vel: 4, vida: 0.6, tam: 0.45 });
 }
 export function heroeSalta() { E.heroe.salto = 0.6; }
+// Fiesta final (al vencer al último jefe): Lumi salta sin parar y estallan fuegos artificiales en el cielo.
+const COLORES_FUEGO = ['#ff4d6d', '#ffd23f', '#4dabf7', '#69db7c', '#da77f2', '#ff922b', '#ffffff', '#38d9a9'];
+E.fiesta = null; E.alFuego = null;
+export function fiesta(si) {
+  E.fiesta = si ? { t: 0, fuego: 0.2, salto: 0 } : null;
+}
+function lanzarFuego() {
+  const c = COLORES_FUEGO, a = c[Math.floor(Math.random() * c.length)], b = c[Math.floor(Math.random() * c.length)];
+  const vert = E.vertical; // en vertical la pantalla es estrecha y la parte de arriba es corta: fuegos más cerca y más bajos
+  const pos = new THREE.Vector3((Math.random() - 0.5) * (vert ? 18 : 34), vert ? 3 + Math.random() * 8 : 7 + Math.random() * 11, vert ? -6 - Math.random() * 10 : -10 - Math.random() * 16);
+  emitir(pos, 70, a, { vel: 8.5, vida: 1.6, tam: 0.85, grav: 3, mezcla: b, arriba: 2, minArriba: -1, disp: 0.2 });
+  emitir(pos, 16, '#ffffff', { vel: 3, vida: 1.0, tam: 0.55, grav: 1, arriba: 2, minArriba: -1, disp: 0.2 });
+  if (E.alFuego) E.alFuego();
+}
 export function celebrar() { const h = E.heroe; h.salto = 2.4; E.confeti = 2.2; if (h.acc) h.actual = reproducir(h.acc.victoria, h.actual, 0.15, true); }
 // Sin vidas, Lumi cae UNA vez y se queda en el suelo (aunque se cambie de pantalla) hasta que se la levanta con levantar().
 export function entristecer() {
@@ -1321,7 +1336,7 @@ function actualizar(dt, real) {
 
   // Lumi.
   const h = E.heroe;
-  h.rotObj = E.vista === 'menu' || E.vista === 'titulo' || E.vista === 'resultado' ? 0 : Math.PI;
+  h.rotObj = E.vista === 'menu' || E.vista === 'titulo' || E.vista === 'resultado' || E.vista === 'final' ? 0 : Math.PI;
   h.grupo.rotation.y += (h.rotObj - h.grupo.rotation.y) * (1 - Math.exp(-real * 6));
   if (h.salto > 0) h.salto = Math.max(0, h.salto - real);
   h.cuerpo.position.y = h.salto > 0 ? Math.abs(Math.sin(h.salto * Math.PI * 2.5)) * 0.6 : 0;
@@ -1446,6 +1461,11 @@ function actualizar(dt, real) {
   if (E.frenesi && Math.random() < 0.6) {
     const a = Math.random() * Math.PI * 2;
     emitir(h.grupo.position.clone().add(new THREE.Vector3(Math.cos(a) * 0.8, 0.2 + Math.random() * 2, Math.sin(a) * 0.8)), 1, Math.random() < 0.5 ? '#ffd23f' : '#ff8a3d', { vel: 1, vida: 0.7, tam: 0.45, grav: -3, disp: 0.1 });
+  }
+  if (E.fiesta) {
+    E.fiesta.t += real; E.fiesta.fuego -= real; E.fiesta.salto -= real;
+    if (E.fiesta.fuego <= 0) { lanzarFuego(); E.fiesta.fuego = 0.35 + Math.random() * 0.6; if (Math.random() < 0.25) setTimeout(lanzarFuego, 160); }
+    if (E.fiesta.salto <= 0) { celebrar(); E.fiesta.salto = 2.5; } // salta y lanza confeti sin parar
   }
   if (E.confeti > 0) {
     E.confeti -= real;

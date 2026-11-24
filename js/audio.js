@@ -356,5 +356,24 @@ export const sfx = {
     [72, 76, 79, 84, 88, 91].forEach((n, i) => nota(t + i * 0.05, n, 0.2, { tipo: 'square', vol: 0.06, filtro: 6000 }));
     bombo(t, A.efectos, 0.6);
   },
+  // Petardo de fuegos artificiales: silbido que sube, estallido y chisporroteo.
+  fuego() {
+    if (!audioListo()) return; const t = A.ctx.currentTime;
+    nota(t, 66 + Math.random() * 8, 0.38, { tipo: 'sine', vol: 0.05, deslizar: 26, filtro: 5000 });
+    const b = t + 0.4;
+    bombo(b, A.efectos, 0.35); ruido(b, 0.55, { tipoFiltro: 'highpass', frec: 3500, barrido: 900, vol: 0.16 });
+    for (let i = 0; i < 8; i++) nota(b + 0.1 + i * 0.05 + Math.random() * 0.05, 90 + Math.floor(Math.random() * 14), 0.05, { tipo: 'triangle', vol: 0.025 });
+  },
+  // Fanfarria triunfal (unos 4 segundos): arpegio ascendente, acordes y redoble.
+  fanfarria() {
+    if (!audioListo()) return; const t = A.ctx.currentTime;
+    const mel = [[72, 0, 0.16], [76, 0.18, 0.16], [79, 0.36, 0.16], [84, 0.54, 0.34], [79, 0.92, 0.16], [84, 1.1, 0.16], [88, 1.28, 0.62],
+      [86, 2.0, 0.16], [84, 2.18, 0.16], [86, 2.36, 0.16], [91, 2.54, 1.4]];
+    for (const [n, s, d] of mel) { nota(t + s, n, d, { tipo: 'square', vol: 0.08, filtro: 5500 }); nota(t + s, n - 12, d, { tipo: 'triangle', vol: 0.08 }); }
+    for (const [acorde, s, d] of [[[60, 64, 67], 0, 1.9], [[65, 69, 72], 2.0, 0.5], [[67, 71, 74], 2.5, 0.5], [[60, 64, 67, 72], 3.0, 1.4]])
+      for (const n of acorde) nota(t + s, n, d, { tipo: 'sawtooth', vol: 0.035, filtro: 1800, ataque: 0.02 });
+    for (let i = 0; i < 12; i++) caja(t + 1.9 + i * 0.045, A.efectos, 0.18 + i * 0.012);
+    bombo(t, A.efectos, 0.6); bombo(t + 2.54, A.efectos, 0.7); ruido(t + 2.54, 1.2, { tipoFiltro: 'highpass', frec: 5000, vol: 0.14 });
+  },
   cuenta(n) { if (!audioListo()) return; nota(A.ctx.currentTime, n > 0 ? 72 : 84, n > 0 ? 0.12 : 0.35, { tipo: 'square', vol: 0.07, filtro: 4000 }); },
 };

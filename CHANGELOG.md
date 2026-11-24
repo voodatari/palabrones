@@ -1,5 +1,12 @@
 # Cambios de ¡Palabrones!
 
+## v1.1.19 · 2026-11-24 · ¡Gran final del juego!
+
+- Al vencer al último jefe (el Dragón Revoltijo) hay una fiesta antes de los resultados: fuegos artificiales de colores en el cielo, Lumi saltando
+  de alegría, confeti y lluvia de emojis, fanfarria y felicitación en voz alta. Aparece un diploma de «Gran Maestro de las Palabras» con el nombre
+  del jugador, sus estrellas, Palabrones vencidos y rango.
+- La primera vez da un premio de campeón (+300 monedas) y el logro nuevo «Gran Maestro de las Palabras». Las siguientes veces, la fiesta se repite sin premio.
+
 ## v1.1.18 · 2026-11-24 · Lumi se queda en el suelo y el objetivo no cambia de golpe
 
 - Al perder todas las vidas, Lumi cae una sola vez y se queda en el suelo mientras se ven los resultados (antes volvía a caer al

@@ -30,7 +30,8 @@ y esa palabra volverá a salir más adelante para que la aprendas.
 ## Modos de juego
 
 - **Aventura:** 5 mundos (Pradera Pétalo, Bosque Brumoso, Dunas Doradas, Picos Helados y Castillo del
-  Caos), cada uno con varios niveles de dificultad creciente y un jefe final.
+  Caos), cada uno con varios niveles de dificultad creciente y un jefe final. Al vencer al último jefe hay una
+  gran fiesta final con diploma.
 - **Entrenar:** repaso de las palabras falladas y de la clase que peor se te da.
 - **Desafío:** oleadas sin fin para batir tu récord.
 - **Misiones diarias, logros, tienda** (sombreros, auras y mascotas con las monedas ganadas) y
