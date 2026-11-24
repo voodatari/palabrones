@@ -1,5 +1,13 @@
 # Cambios de ¡Palabrones!
 
+## v1.1.9 · 2026-11-24 · Retoques de imagen y vista vertical
+
+- Se quita el bloom (brillo difuso), que restaba contraste a la imagen.
+- Look retro: más resolución en el navegador (unas 320 líneas) y en el móvil (cada píxel retro es de 1 px de
+  la web, con la imagen final a la resolución real de la pantalla). El antialiasing FXAA también se aplica en
+  el look retro, sobre la imagen de baja resolución y antes del filtro CRT.
+- Vista vertical del móvil: Lumi se ve más abajo y más grande, justo encima de los botones.
+
 ## v1.1.8 · 2026-11-24 · Bordes suaves
 
 - Con gráficos «Bonitos» se añade antialiasing FXAA (muy barato para la tarjeta gráfica): desaparecen los dientes de

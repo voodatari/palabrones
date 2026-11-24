@@ -2,14 +2,13 @@
 // Personajes, monstruos y decorado son modelos GLB de Quaternius (CC0), en web/modelos.
 // El estado del juego vive en juego.js; aquí solo se dibuja (las mallas son una «vista»).
 
-import * as THREE from './lib/three.module.js?v=1.1.8';
+import * as THREE from './lib/three.module.js?v=1.1.9';
 import { GLTFLoader } from './lib/addons/loaders/GLTFLoader.js';
 import { clone as clonarEsqueleto } from './lib/addons/utils/SkeletonUtils.js';
 import { RoomEnvironment } from './lib/addons/environments/RoomEnvironment.js';
 import { EffectComposer } from './lib/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from './lib/addons/postprocessing/RenderPass.js';
 import { GTAOPass } from './lib/addons/postprocessing/GTAOPass.js';
-import { UnrealBloomPass } from './lib/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from './lib/addons/postprocessing/OutputPass.js';
 import { ShaderPass } from './lib/addons/postprocessing/ShaderPass.js';
 import { FXAAShader } from './lib/addons/shaders/FXAAShader.js';
@@ -246,7 +245,7 @@ const MODELOS = new Map();
 const ALTURAS = new Map();
 export function cargar(nombre) {
   if (!MODELOS.has(nombre)) {
-    MODELOS.set(nombre, new Promise((ok, mal) => cargador.load(`modelos/${nombre}.glb?v=1.1.8`, ok, undefined, mal)).catch((e) => { console.warn('modelo', nombre, e); return null; }));
+    MODELOS.set(nombre, new Promise((ok, mal) => cargador.load(`modelos/${nombre}.glb?v=1.1.9`, ok, undefined, mal)).catch((e) => { console.warn('modelo', nombre, e); return null; }));
   }
   return MODELOS.get(nombre);
 }
@@ -352,7 +351,8 @@ export function iniciar(canvas, calidad) {
   E.calidad = calidad;
   const r = new THREE.WebGLRenderer({ canvas, antialias: calidad !== 'alta', powerPreference: 'high-performance' });
   r.localClippingEnabled = true; // el pelo de Lumi se recorta a la altura del ala del sombrero
-  r.setPixelRatio(Math.min(window.devicePixelRatio || 1, calidad === 'alta' ? 1.25 : 1));
+  E.pixelRatioBase = Math.min(window.devicePixelRatio || 1, calidad === 'alta' ? 1.25 : 1);
+  r.setPixelRatio(E.pixelRatioBase);
   r.setSize(innerWidth, innerHeight, false);
   r.toneMapping = THREE.NoToneMapping; r.toneMappingExposure = 1.0; // sin mapa de tonos: colores y contraste tal cual
   r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFShadowMap;
@@ -389,8 +389,7 @@ export function iniciar(canvas, calidad) {
     ao.updateGtaoMaterial({ radius: 0.5, distanceExponent: 1.5, thickness: 1, scale: 1.2, samples: 12 });
     ao.blendIntensity = 0.85;
     comp.addPass(ao);
-    const brillo = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.22, 0.4, 1.15);
-    comp.addPass(brillo);
+    // Sin bloom (brillo difuso): quitaba contraste a la imagen.
     comp.addPass(new OutputPass());
     // Antialiasing FXAA (casi sin coste): se aplica sobre la imagen final, ya con su color definitivo.
     E.fxaa = new ShaderPass(FXAAShader);
@@ -435,7 +434,7 @@ export async function prepararTema(nombre, alProgreso) {
 }
 
 // ---------- Look retro: pixelado + CRT (solo el dibujo 3D; los menús son HTML y no cambian) ----------
-const RETRO_LINEAS = 240; // líneas de la imagen en pantallas grandes (en las estrechas, el píxel es de 2 px)
+const RETRO_LINEAS = 320; // líneas de la imagen en pantallas grandes (en las estrechas, el píxel es de 1-2 px)
 const RETRO = { activo: false, comp: null, uni: null, escena: null, cam: null, w: 2, h: 2 };
 const CRT_FRAG = `
 uniform sampler2D tDiffuse; uniform vec2 baja;
@@ -465,6 +464,8 @@ function prepararRetro() {
     RETRO.comp = new EffectComposer(E.renderer);
     RETRO.comp.addPass(new RenderPass(E.escena, E.camara));
     RETRO.comp.addPass(new OutputPass());
+    E.fxaa = new ShaderPass(FXAAShader);
+    RETRO.comp.addPass(E.fxaa);
   }
 }
 export function retro(si) {
@@ -490,19 +491,24 @@ function ajustarTamano() {
   const vfov = Math.max(50, (2 * Math.atan(Math.tan(hfov / 2) / asp)) * 180 / Math.PI);
   E.camara.fov = Math.min(vfov, 76);
   E.camara.updateProjectionMatrix();
+  const dpr = window.devicePixelRatio || 1, movil = w < 700 || h < 480;
+  // Con el look retro en móvil la imagen final se pinta a la resolución real de la pantalla (hasta x3), para que
+  // cada píxel del retro sea de 1 px de la web y sus líneas de barrido se vean finas y nítidas.
+  E.renderer.setPixelRatio(RETRO.activo && movil ? Math.min(dpr, 3) : E.pixelRatioBase);
   E.renderer.setSize(w, h, false);
   const comp = E.compositor || RETRO.comp, pr = E.renderer.getPixelRatio();
   if (RETRO.activo && comp) {
     // Look retro: la escena se dibuja con píxeles grandes y luego se amplía con el filtro CRT.
-    const pix = w < 700 || h < 480 ? 2 : Math.max(2, Math.round(h / RETRO_LINEAS)); // móvil: píxeles de 2 px (más resolución)
+    // En móvil, un píxel retro es de 1 px de la web (2 px de pantalla como mínimo); en pantallas grandes, ≈320 líneas.
+    const pix = movil ? Math.max(1, Math.ceil(2 / dpr)) : Math.max(2, Math.round(h / RETRO_LINEAS));
     RETRO.w = Math.max(2, Math.round(w / pix)); RETRO.h = Math.max(2, Math.round(h / pix));
     comp.setPixelRatio(1); comp.setSize(RETRO.w, RETRO.h);
-    if (E.fxaa) E.fxaa.enabled = false; // el pixelado no debe suavizarse
+    if (E.fxaa) { E.fxaa.enabled = true; E.fxaa.material.uniforms.resolution.value.set(1 / RETRO.w, 1 / RETRO.h); } // FXAA sobre la imagen de baja resolución, antes del filtro CRT
     RETRO.uni.baja.value.set(RETRO.w, RETRO.h);
     if (P.puntos) P.puntos.material.uniforms.escalaPx.value = RETRO.h * 0.55;
   } else {
     if (comp) { comp.setPixelRatio(pr); comp.setSize(w, h); }
-    if (E.fxaa) { E.fxaa.enabled = true; E.fxaa.material.uniforms.resolution.value.set(1 / (w * pr), 1 / (h * pr)); }
+    if (E.fxaa && comp === E.compositor) { E.fxaa.enabled = true; E.fxaa.material.uniforms.resolution.value.set(1 / (w * pr), 1 / (h * pr)); }
     if (P.puntos) P.puntos.material.uniforms.escalaPx.value = h * 0.55 * pr;
   }
   E.vertical = asp < 0.9;
@@ -516,7 +522,7 @@ export function vista(v, inmediato = false) {
   if (v === 'menu') { E.camPosObj.set(vert ? 0.6 : 1.4, vert ? 2.3 : 2.2, vert ? 8.4 : 7.8); E.camMiraObj.set(vert ? 0.2 : 2.5, vert ? -0.2 : 1.3, 1.4); }
   else if (v === 'titulo') { E.camPosObj.set(0.4, 2.0, vert ? 8.6 : 7.4); E.camMiraObj.set(0, vert ? -0.4 : -0.1, 1.4); }
   else if (v === 'jefe') { E.camPosObj.set(0, vert ? 4.4 : 3.8, vert ? 13 : 10.5); E.camMiraObj.set(0, vert ? 4.6 : 5.2, -12); } // desde abajo: el jefe impone
-  else { E.camPosObj.set(0, vert ? 6.6 : 5.6, vert ? 12.4 : 10.2); E.camMiraObj.set(0, vert ? -1.6 : -1.5, -9); }
+  else { E.camPosObj.set(0, vert ? 5.6 : 5.6, vert ? 10.4 : 10.2); E.camMiraObj.set(0, vert ? 3.4 : -1.5, -9); } // vertical: Lumi abajo, justo sobre los botones
   if (inmediato) { E.camPos.copy(E.camPosObj); E.camMira.copy(E.camMiraObj); }
 }
 export function temblor(t) { E.trauma = Math.min(1, E.trauma + t); }
