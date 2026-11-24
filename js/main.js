@@ -1,11 +1,11 @@
 // ¡Palabrones! · Interfaz: pantallas, menús, HUD, explicaciones, resultados y teclado.
-import * as E from './escena.js?v=1.1.0';
-import { J, empezar, lanzar, congelar, pausar, abandonar } from './juego.js?v=1.1.0';
-import * as Pr from './progreso.js?v=1.1.0';
-import { CATS, TRUCOS, MUNDOS, TIENDA, AVATARES, claveNivel } from './datos.js?v=1.1.0';
-import { iniciarAudio, musica, volumenes, sfx } from './audio.js?v=1.1.0';
-import { decir, callar, activarVoz, desbloquearVoz } from './voz.js?v=1.1.0';
-import { dibujar as dibujarEtiquetas, limpiar as limpiarEtiquetas } from './etiquetas.js?v=1.1.0';
+import * as E from './escena.js?v=1.1.1';
+import { J, empezar, lanzar, congelar, pausar, abandonar } from './juego.js?v=1.1.1';
+import * as Pr from './progreso.js?v=1.1.1';
+import { CATS, TRUCOS, MUNDOS, TIENDA, AVATARES, claveNivel } from './datos.js?v=1.1.1';
+import { iniciarAudio, musica, volumenes, sfx, precargarMusica } from './audio.js?v=1.1.1';
+import { decir, callar, activarVoz, desbloquearVoz } from './voz.js?v=1.1.1';
+import { dibujar as dibujarEtiquetas, limpiar as limpiarEtiquetas } from './etiquetas.js?v=1.1.1';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -109,7 +109,7 @@ async function precargarInicio() {
   $('#b-empezar').disabled = false;
   $('#carga').classList.add('oculto');
   $('#aviso-carga').textContent = '';
-  E.precargarTodo((p) => { window.__precarga = p; });
+  E.precargarTodo((p) => { window.__precarga = p; }).then(() => precargarMusica());
 }
 precargarInicio();
 // Antes de jugar o de ver un mundo, se asegura de que sus modelos están cargados y listos.

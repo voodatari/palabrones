@@ -3,11 +3,39 @@
 
 const A = {
   ctx: null, maestro: null, musica: null, atenuacion: null, efectos: null, ruido: null,
-  volMusica: 0.7, volEfectos: 0.8, cancion: null, intensidad: 0, archivos: {}, pistaArchivo: null,
+  volMusica: 0.7, volEfectos: 0.8, cancion: null, intensidad: 0,
+  crudos: {}, pistas: {}, ficha: 0, solicitada: null,
 };
+if (typeof window !== 'undefined') window.__audioEstado = A; // (para las pruebas automáticas)
 
 // Pistas opcionales en music/ (por ejemplo descargadas de Pixabay). Si no están, se sintetiza.
 const ARCHIVOS = { menu: 'music/menu.mp3', pradera: 'music/pradera.mp3', bosque: 'music/bosque.mp3', desierto: 'music/desierto.mp3', nieve: 'music/nieve.mp3', castillo: 'music/castillo.mp3', jefe: 'music/jefe.mp3' };
+
+// ---------- pistas de archivo (music/*.mp3) ----------
+// Regla: si existe el archivo de una canción, NUNCA suena antes la sintetizada. Se espera a que llegue
+// (el menú se empieza a bajar nada más abrir la página; el resto, por orden en segundo plano o en cuanto
+// hace falta) y mientras tanto sigue la música anterior. Solo si el archivo no existe o falla se sintetiza.
+// Las pistas decodificadas pesan decenas de MB: solo se conserva la de la canción que suena.
+A.ctxListo = new Promise((ok) => { A.resolverCtx = ok; });
+function crudo(nombre) {
+  if (!A.crudos[nombre]) A.crudos[nombre] = fetch(ARCHIVOS[nombre]).then((r) => (r.ok ? r.arrayBuffer() : null)).catch(() => null);
+  return A.crudos[nombre];
+}
+function pista(nombre) {
+  if (!A.pistas[nombre]) {
+    A.pistas[nombre] = crudo(nombre).then(async (ab) => {
+      if (!ab) return null;
+      await A.ctxListo;
+      try { return await A.ctx.decodeAudioData(ab.slice(0)); } catch (e) { return null; }
+    });
+  }
+  return A.pistas[nombre];
+}
+// Baja (sin decodificar) todas las pistas, una detrás de otra, para que estén listas al cambiar de mundo.
+export async function precargarMusica(orden = ['menu', 'pradera', 'jefe', 'bosque', 'desierto', 'nieve', 'castillo']) {
+  for (const n of orden) await crudo(n);
+}
+crudo('menu');
 
 function ganancia(v) { return Math.max(0, Math.min(1, v)) ** 2; } // deslizador 0..1 → amplitud (curva cuadrática)
 
@@ -32,12 +60,7 @@ export function iniciarAudio() {
     if (!A.ctx) return;
     if (document.hidden) A.ctx.suspend(); else A.ctx.resume();
   });
-  // Mira qué pistas de archivo existen (sin bloquear el juego).
-  for (const [k, url] of Object.entries(ARCHIVOS)) {
-    fetch(url).then((r) => (r.ok ? r.arrayBuffer() : null)).then((b) => b && ctx.decodeAudioData(b)).then((buf) => {
-      if (buf) { A.archivos[k] = buf; if (A.cancion && A.cancion.nombre === k) reiniciarCancion(); }
-    }).catch(() => {});
-  }
+  A.resolverCtx();
   if (A.pendiente) { const p = A.pendiente; A.pendiente = null; musica(p); }
 }
 
@@ -158,14 +181,22 @@ function componer(c) {
   return mel;
 }
 
-function reiniciarCancion() { const n = A.cancion && A.cancion.nombre; if (n) { pararMusica(true); musica(n); } }
-
 export function musica(nombre) {
   if (!A.ctx) { A.pendiente = nombre; return; }
-  if (A.cancion && A.cancion.nombre === nombre) return;
+  if (A.solicitada === nombre) return;
+  A.solicitada = nombre;
+  const mi = ++A.ficha;
+  pista(nombre).then((buf) => {
+    if (mi !== A.ficha || !A.ctx) return; // mientras tanto se pidió otra canción
+    arrancarMusica(nombre, buf);
+  });
+}
+
+function arrancarMusica(nombre, buf) {
   pararMusica();
-  if (A.archivos[nombre]) {
-    const s = A.ctx.createBufferSource(); s.buffer = A.archivos[nombre]; s.loop = true;
+  for (const k of Object.keys(A.pistas)) if (k !== nombre) delete A.pistas[k];
+  if (buf) {
+    const s = A.ctx.createBufferSource(); s.buffer = buf; s.loop = true;
     const g = A.ctx.createGain(); g.gain.setValueAtTime(0.0001, A.ctx.currentTime); g.gain.exponentialRampToValueAtTime(1.3, A.ctx.currentTime + 0.8);
     s.connect(g).connect(A.musica); s.start();
     A.cancion = { nombre, archivo: true, s, g };

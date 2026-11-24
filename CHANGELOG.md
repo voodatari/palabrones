@@ -1,5 +1,14 @@
 # Cambios de ¡Palabrones!
 
+## v1.1.1 · 2026-11-24 · Música sin cortes al empezar
+
+- Si existe el archivo de una canción (carpeta music/), ya no suena antes la música generada mientras
+  llega: se espera al archivo y, entre tanto, sigue la música anterior. La generada solo suena si el
+  archivo no existe o falla.
+- El menú se empieza a bajar nada más abrir la página y el resto de pistas, una detrás de otra en
+  segundo plano. Solo se mantiene decodificada la canción que suena (antes eran las 7 a la vez: cientos
+  de MB de memoria, un problema en móviles).
+
 ## v1.1.0 · 2026-11-24 · Textos de la partida rediseñados
 
 - Las palabras sobre los monstruos ya no son carteles 3D (se movían raro, se tapaban entre sí y quedaban
