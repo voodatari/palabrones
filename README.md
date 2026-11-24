@@ -13,7 +13,7 @@ móvil) sin instalar nada y sin cuentas: el progreso se guarda en el propio disp
 ## Cómo se juega
 
 Los Palabrones avanzan por el camino con una palabra encima. El marcado con la flecha
-es el objetivo: elige su hechizo antes de que llegue hasta Lumi, la maga.
+es el objetivo: elige su hechizo antes de que llegue hasta Lumi, la brujita.
 
 | Hechizo | Para… | Teclas |
 |---|---|---|
@@ -78,6 +78,6 @@ El historial de versiones está en [CHANGELOG.md](CHANGELOG.md).
 ## Créditos y licencias
 
 - Motor 3D: [three.js](https://threejs.org) r187 (licencia MIT, copia en `js/lib`).
-- Modelos 3D: [Quaternius](https://quaternius.com) (CC0, vía [Poly Pizza](https://poly.pizza)); el mago es
-  «Animated Wizard» de Quaternius (CC BY 3.0). Lista completa en `modelos/creditos.txt`.
+- Modelos 3D: [Quaternius](https://quaternius.com) (CC0, vía [Poly Pizza](https://poly.pizza)); Lumi es
+  «Witch» de antoine1germ (CC BY 3.0). Lista completa en `modelos/creditos.txt`.
 - Música: pistas de [Pixabay](https://pixabay.com) (Pixabay Content License). Autores en `music/creditos.txt`.

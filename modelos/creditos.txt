@@ -1,8 +1,8 @@
 Modelos 3D de ¡Palabrones!
 Casi todos: Quaternius (https://quaternius.com), licencia CC0 1.0, vía https://poly.pizza
-Mago (mago.glb): "Animated Wizard" de Quaternius, licencia CC-BY 3.0 (https://poly.pizza/m/kttbFvCl2C)
+Lumi (mago.glb): "Witch" de antoine1germ, licencia CC-BY 3.0 (https://poly.pizza/m/Z7imf6O9k9)
 
-mago.glb  https://poly.pizza/m/kttbFvCl2C
+mago.glb  https://poly.pizza/m/Z7imf6O9k9
 m-pradera-1.glb  https://poly.pizza/m/LWKmS30Xxl
 m-pradera-2.glb  https://poly.pizza/m/AyP8sQmDLh
 m-pradera-3.glb  https://poly.pizza/m/y4kJh8EeYS

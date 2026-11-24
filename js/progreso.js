@@ -2,7 +2,7 @@
 // clase de palabra, logros, misiones del día, racha de días, repaso de fallos e historial.
 // Se guarda en el navegador (localStorage) con versión y copia de seguridad.
 
-import { MUNDOS, claveNivel, TIENDA } from './datos.js?v=1.1.2';
+import { MUNDOS, claveNivel, TIENDA } from './datos.js?v=1.1.3';
 
 const CLAVE = 'palabrones.partida';
 const VERSION = 1;
@@ -64,7 +64,7 @@ function hoy() { const d = new Date(); return `${d.getFullYear()}-${String(d.get
 function diasEntre(a, b) { return Math.round((new Date(b) - new Date(a)) / 86400000); }
 
 function vacio() {
-  return { version: VERSION, perfiles: [], activo: null, ajustes: { musica: 0.7, efectos: 0.8, voz: true, calidad: 'auto', velocidad: 1 } };
+  return { version: VERSION, perfiles: [], activo: null, ajustes: { musica: 0.7, efectos: 0.8, voz: true, calidad: 'auto', velocidad: 1.6, velBase: 2 } };
 }
 
 function nuevoPerfil(nombre, avatar, invitado = false) {
@@ -99,6 +99,8 @@ function cargar() {
       if (v > VERSION) continue; // de una versión más nueva: no se toca
       while (v < VERSION) { d = MIGRACIONES[v](d); v++; d.version = v; }
       if (d.ajustes && d.ajustes.velocidad === undefined && d.ajustes.lento) d.ajustes.velocidad = 0.7;
+      // v1.1.3: la velocidad por defecto es la máxima del control (una sola vez; después se respeta lo que elija).
+      if (d.ajustes && !d.ajustes.velBase) { d.ajustes.velocidad = 1.6; d.ajustes.velBase = 2; }
       d.ajustes = Object.assign(vacio().ajustes, d.ajustes || {});
       d.perfiles = d.perfiles.map((p) => Object.assign(nuevoPerfil(p.nombre, p.avatar), p));
       return d;

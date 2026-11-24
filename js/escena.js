@@ -1,8 +1,8 @@
 // ¡Palabrones! · Escena 3D (three.js r187): mundos, Lumi, Palabrones, jefes, hechizos y efectos.
-// Personajes, monstruos y decorado son modelos GLB de Quaternius (CC0; el mago CC-BY), en web/modelos.
+// Personajes, monstruos y decorado son modelos GLB de Quaternius (CC0; Lumi es de antoine1germ, CC-BY), en web/modelos.
 // El estado del juego vive en juego.js; aquí solo se dibuja (las mallas son una «vista»).
 
-import * as THREE from './lib/three.module.js?v=1.1.2';
+import * as THREE from './lib/three.module.js?v=1.1.3';
 import { GLTFLoader } from './lib/addons/loaders/GLTFLoader.js';
 import { clone as clonarEsqueleto } from './lib/addons/utils/SkeletonUtils.js';
 import { RoomEnvironment } from './lib/addons/environments/RoomEnvironment.js';
@@ -244,7 +244,7 @@ const MODELOS = new Map();
 const ALTURAS = new Map();
 export function cargar(nombre) {
   if (!MODELOS.has(nombre)) {
-    MODELOS.set(nombre, new Promise((ok, mal) => cargador.load(`modelos/${nombre}.glb?v=1.1.2`, ok, undefined, mal)).catch((e) => { console.warn('modelo', nombre, e); return null; }));
+    MODELOS.set(nombre, new Promise((ok, mal) => cargador.load(`modelos/${nombre}.glb?v=1.1.3`, ok, undefined, mal)).catch((e) => { console.warn('modelo', nombre, e); return null; }));
   }
   return MODELOS.get(nombre);
 }
@@ -449,7 +449,7 @@ export function vista(v, inmediato = false) {
   if (v === 'menu') { E.camPosObj.set(vert ? 0.6 : 1.4, vert ? 2.3 : 2.2, vert ? 8.4 : 7.8); E.camMiraObj.set(vert ? 0.2 : 2.5, vert ? -0.2 : 1.3, 1.4); }
   else if (v === 'titulo') { E.camPosObj.set(0.4, 2.0, vert ? 8.6 : 7.4); E.camMiraObj.set(0, vert ? -0.4 : -0.1, 1.4); }
   else if (v === 'jefe') { E.camPosObj.set(0, vert ? 4.4 : 3.8, vert ? 13 : 10.5); E.camMiraObj.set(0, vert ? 4.6 : 5.2, -12); } // desde abajo: el jefe impone
-  else { E.camPosObj.set(0, vert ? 6.6 : 5.6, vert ? 12.4 : 10.2); E.camMiraObj.set(0, vert ? -0.6 : 0.2, -9); }
+  else { E.camPosObj.set(0, vert ? 6.6 : 5.6, vert ? 12.4 : 10.2); E.camMiraObj.set(0, vert ? -1.6 : -1.5, -9); }
   if (inmediato) { E.camPos.copy(E.camPosObj); E.camMira.copy(E.camMiraObj); }
 }
 export function temblor(t) { E.trauma = Math.min(1, E.trauma + t); }
@@ -686,20 +686,43 @@ function crearHeroe() {
 function montarHeroe() {
   const h = E.heroe;
   if (h.modelo) return;
-  const a = copiaAnimada('mago', 2.1);
+  const a = copiaAnimada('mago', 2.3);
   if (!a) return;
-  h.modelo = a.o; h.mixer = a.mixer;
-  h.acc = { quieto: a.buscar('Idle'), correr: a.buscar('Run'), hechizo: a.buscar('Spell1', 'Staff_Attack'), golpe: a.buscar('RecieveHit', 'RecieveHit_2'), victoria: a.buscar('Spell2', 'Idle_Attacking'), triste: a.buscar('Death') };
-  h.cuerpo.add(a.o);
-  // El orbe brilla en la punta del bastón; el sombrero de la tienda va en la cabeza.
-  let punta = null, cabeza = null;
-  a.o.traverse((c) => { if (c.name === 'Weapon.R_end' || (!punta && c.name === 'Wizard_Staff')) punta = c; if (c.name === 'Head') cabeza = c; });
+  // La bruja tiene los pies lejos del origen: se centra en un pivote a ras de suelo y por él se mueve todo el cuerpo.
   a.o.updateMatrixWorld(true);
-  const escMundo = new THREE.Vector3();
-  if (punta) { punta.getWorldScale(escMundo); h.orbe.scale.setScalar(1 / escMundo.x); h.halo.scale.setScalar(0.9 / escMundo.x); punta.add(h.orbe, h.halo); h.punta = punta; }
+  const caja = new THREE.Box3().setFromObject(a.o, true), c0 = new THREE.Vector3(); caja.getCenter(c0);
+  a.o.position.set(-c0.x, -caja.min.y, -c0.z);
+  const pivote = new THREE.Group(); pivote.add(a.o);
+  h.modelo = pivote; h.mixer = a.mixer; h.base = a.o; h.proc = true;
+  const reposo = a.buscar('Armature.001Action');
+  h.acc = { quieto: reposo, correr: reposo, hechizo: null, golpe: null, victoria: null, triste: null };
+  h.cuerpo.add(pivote);
+  a.o.traverse((c) => { if (c.isMesh && c.material && c.material.name === 'dress.003') c.material.color.set('#8b3fd0'); if (c.isMesh && c.material && c.material.name === 'dress.002') c.material.color.set('#8b3fd0'); });
+  // Sitios de la varita (orbe en su punta) y del sombrero, medidos sobre el propio modelo.
+  a.o.updateMatrixWorld(true);
+  const inv = new THREE.Matrix4().copy(a.o.matrixWorld).invert(), v = new THREE.Vector3();
+  let punta = null, pelo = new THREE.Box3(), sombreroMallas = [];
+  a.o.traverse((c) => {
+    if (!c.isSkinnedMesh) return;
+    const n = c.material.name;
+    if (n === 'Material.016' || n === 'Material.019') sombreroMallas.push(c);
+    const esPelo = n === 'Hair.001';
+    for (let i = 0; i < c.geometry.attributes.position.count; i++) {
+      c.getVertexPosition(i, v); v.applyMatrix4(c.matrixWorld).applyMatrix4(inv);
+      if (!punta || v.x < punta.x) punta = v.clone();
+      if (esPelo) pelo.expandByPoint(v);
+    }
+  });
+  h.sombreroOriginal = sombreroMallas;
+  const aE = a.escala;
+  if (punta) { h.orbe.position.copy(punta); h.orbe.scale.setScalar(1 / aE); h.halo.position.copy(punta); h.halo.scale.setScalar(0.9 / aE); a.o.add(h.orbe, h.halo); h.punta = a.o; }
   else { h.orbe.position.set(0.5, 1.6, 0.2); h.cuerpo.add(h.orbe, h.halo); }
-  if (cabeza) { cabeza.getWorldScale(escMundo); h.sombreroSitio.scale.setScalar(0.68 / escMundo.x); h.sombreroSitio.position.set(0, 0.5 / escMundo.x, -0.04 / escMundo.x); cabeza.add(h.sombreroSitio); }
+  const cp = new THREE.Vector3(); pelo.getCenter(cp);
+  h.sombreroSitio.position.set(cp.x, pelo.max.y - 0.04 / aE, cp.z); h.sombreroSitio.scale.setScalar(0.75 / aE);
+  a.o.add(h.sombreroSitio);
   h.actual = reproducir(h.acc.quieto, null);
+  const ap = h.aspecto; // si ya había un sombrero comprado, sustituye al de bruja
+  if (ap && ap.sombrero && ap.sombrero !== 'mago' && SOMBREROS[ap.sombrero]) for (const m of sombreroMallas) m.visible = false;
 }
 
 const SOMBRERO_NINGUNO = 'mago';
@@ -709,8 +732,10 @@ export function aspectoHeroe(a, colorHex) {
   h.aspecto = Object.assign({}, a);
   h.aura.material.color.set(colorHex);
   h.sombreroSitio.clear();
-  // El mago ya lleva su propio pelo: el «sombrero de mago» de serie no añade nada.
-  if (a.sombrero && a.sombrero !== SOMBRERO_NINGUNO && SOMBREROS[a.sombrero]) h.sombreroSitio.add(SOMBREROS[a.sombrero](colorHex));
+  // Lumi ya lleva su sombrero de bruja: el de serie no añade nada y, si compras otro, sustituye al suyo.
+  const otro = !!(a.sombrero && a.sombrero !== SOMBRERO_NINGUNO && SOMBREROS[a.sombrero]);
+  if (otro) h.sombreroSitio.add(SOMBREROS[a.sombrero](colorHex));
+  if (h.sombreroOriginal) for (const m of h.sombreroOriginal) m.visible = !otro;
   h.mascotaSitio.clear(); h.mascota = null;
   if (a.mascota && MASCOTAS[a.mascota]) { h.mascota = MASCOTAS[a.mascota](); h.mascotaSitio.add(h.mascota); }
 }
@@ -944,6 +969,18 @@ function actualizar(dt, real) {
     }
     h.mixer.timeScale = E.velAvance > 0.4 ? Math.min(1.7, Math.max(0.6, E.velAvance / 3.2)) : 1;
     h.mixer.update(dt);
+    if (h.proc) {
+      // Lumi tiene una sola animación (balanceo): el cuerpo hace el resto por código, con saltitos «chibi».
+      const corre = E.velAvance > 0.4, f = corre ? 10 : 2.2, sn = Math.sin(t * f), k = Math.abs(sn);
+      let y = corre ? k * 0.14 : sn * 0.02, rx = corre ? 0.12 : 0, rz = corre ? sn * 0.07 : Math.sin(t * 1.1) * 0.025, ry = 0;
+      let sy = corre ? 1 + 0.05 * (0.5 - k) : 1 + sn * 0.012;
+      if (h.lanzar > 0) { const q = Math.sin((1 - h.lanzar / 0.45) * Math.PI); rx -= 0.5 * q; y += 0.1 * q; sy += 0.05 * q; }
+      if (h.herido > 0) { const q = h.herido / 0.5; rz += Math.sin(t * 55) * 0.2 * q; rx -= 0.22 * q; sy -= 0.08 * q; }
+      if (h.salto > 1) ry = (1 - (h.salto - 1) / 1.4) * Math.PI * 4; // piruetas al celebrar
+      if (h.triste > 0) { const q = Math.min(1, h.triste / 0.4, (2.9 - h.triste) / 0.3); rx += 0.55 * q; y -= 0.05 * q; sy -= 0.07 * q; }
+      const m = h.modelo; m.position.y += (y - m.position.y) * Math.min(1, dt * 18);
+      m.rotation.set(rx, ry, rz); m.scale.set(1 / Math.sqrt(sy), sy, 1 / Math.sqrt(sy));
+    }
   }
   h.aura.rotation.z += real * 0.8; h.aura.material.opacity = 0.35 + Math.sin(t * 3) * 0.15 + (E.frenesi ? 0.3 : 0);
   h.halo.scale.multiplyScalar(1); h.orbe.rotation.y += real * 2;

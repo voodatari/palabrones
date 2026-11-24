@@ -1,5 +1,14 @@
 # Cambios de ¡Palabrones!
 
+## v1.1.3 · 2026-11-24 · Lumi, una brujita chibi
+
+- Nuevo personaje protagonista: Lumi es ahora una niña brujita «chibi» (cabeza grande, ojos verdes, trenzas y
+  varita con estrella) en lugar de un mago adulto. Se mueve con saltitos al correr, se echa hacia atrás al
+  lanzar el hechizo, se sacude al recibir un golpe, da piruetas al celebrar y se encoge al estar triste.
+  Si compras otro sombrero en la tienda, sustituye al suyo de bruja.
+- La velocidad del juego por defecto es la máxima del control de Opciones (x1,6); se puede bajar cuando se quiera.
+- La cámara está un poco más baja para que Lumi se vea entera sobre los botones.
+
 ## v1.1.2 · 2026-11-24 · Cambios menores
 
 - Cambios menores.

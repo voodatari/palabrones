@@ -2,7 +2,7 @@
 // Regla de oro: las palabras SUELTAS son de una sola clase sin dudas (nada de «canto»,
 // «juego», «cocina», «río», «frío»…). Las palabras «camaleón» solo salen dentro de una frase.
 
-import { BANCO } from './banco.js?v=1.1.2';
+import { BANCO } from './banco.js?v=1.1.3';
 
 export const CATS = {
   S: { id: 'S', nombre: 'Sustantivo', corto: 'Nombre', lema: 'nombra', color: '#3b82f6', claro: '#93c5fd', oscuro: '#1e40af' },
@@ -413,7 +413,7 @@ export function claveNivel(m, n) { return `${m + 1}-${n + 1}`; }
 // ---------- TIENDA ----------
 export const TIENDA = {
   sombreros: [
-    { id: 'mago', nombre: 'Sin sombrero', precio: 0 },
+    { id: 'mago', nombre: 'Sombrero de bruja', precio: 0 },
     { id: 'gorra', nombre: 'Gorra deportiva', precio: 60 },
     { id: 'vikingo', nombre: 'Casco vikingo', precio: 120 },
     { id: 'corona', nombre: 'Corona real', precio: 200 },
