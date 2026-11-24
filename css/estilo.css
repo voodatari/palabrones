@@ -479,3 +479,14 @@ html.vertical .hud-progreso { width: 10.5rem; }
 html.vertical .hud-progreso { width: 8.4rem; height: 1.5rem; }
 html.vertical .hud-progreso b { font-size: 0.8rem; }
 html.vertical .hud-vidas { font-size: 1.45rem; }
+
+/* ---------- Resultado y subida de nivel: Lumi se queda a la vista ---------- */
+/* Móvil vertical: Lumi arriba y las ventanas abajo. Horizontal: Lumi a la izquierda y las ventanas a la derecha. */
+#m-nivel { background: transparent; }
+html.vertical #p-resultado { justify-content: flex-end; }
+html.vertical #p-resultado .panel-resultado, html.vertical #m-nivel.activa > .panel { max-height: calc(var(--alto, 100vh) * 0.58 - var(--seg-abajo)); }
+html.vertical #m-nivel { align-items: flex-end; }
+html.horizontal #p-resultado { align-items: flex-end; }
+html.horizontal #m-nivel { justify-content: flex-end; padding-right: calc(0.8rem + var(--seg-der)); }
+html.horizontal #p-resultado .panel-resultado, html.horizontal #m-nivel.activa > .panel { width: min(34rem, 62%); }
+html.horizontal .avisos { top: auto; bottom: calc(0.8rem + var(--seg-abajo)); left: calc(0.8rem + var(--seg-izq)); transform: none; width: min(24rem, 38%); flex-direction: column-reverse; }

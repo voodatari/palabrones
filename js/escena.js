@@ -2,7 +2,7 @@
 // Personajes, monstruos y decorado son modelos GLB de Quaternius (CC0), en web/modelos.
 // El estado del juego vive en juego.js; aquí solo se dibuja (las mallas son una «vista»).
 
-import * as THREE from './lib/three.module.js?v=1.1.9';
+import * as THREE from './lib/three.module.js?v=1.1.11';
 import { GLTFLoader } from './lib/addons/loaders/GLTFLoader.js';
 import { clone as clonarEsqueleto } from './lib/addons/utils/SkeletonUtils.js';
 import { RoomEnvironment } from './lib/addons/environments/RoomEnvironment.js';
@@ -245,7 +245,7 @@ const MODELOS = new Map();
 const ALTURAS = new Map();
 export function cargar(nombre) {
   if (!MODELOS.has(nombre)) {
-    MODELOS.set(nombre, new Promise((ok, mal) => cargador.load(`modelos/${nombre}.glb?v=1.1.9`, ok, undefined, mal)).catch((e) => { console.warn('modelo', nombre, e); return null; }));
+    MODELOS.set(nombre, new Promise((ok, mal) => cargador.load(`modelos/${nombre}.glb?v=1.1.11`, ok, undefined, mal)).catch((e) => { console.warn('modelo', nombre, e); return null; }));
   }
   return MODELOS.get(nombre);
 }
@@ -434,29 +434,30 @@ export async function prepararTema(nombre, alProgreso) {
 }
 
 // ---------- Look retro: pixelado + CRT (solo el dibujo 3D; los menús son HTML y no cambian) ----------
-const RETRO_LINEAS = 320; // líneas de la imagen en pantallas grandes (en las estrechas, el píxel es de 1-2 px)
-const RETRO = { activo: false, comp: null, uni: null, escena: null, cam: null, w: 2, h: 2 };
+// Cada píxel retro mide un número ENTERO de píxeles de pantalla (RETRO.kd) y el dibujo final se hace a la resolución real
+// de la pantalla: así las líneas de barrido y las franjas de color encajan exactamente y no aparece moiré.
+const RETRO_FXAA = false;   // el FXAA sobre una imagen de baja resolución la emborrona: se usa MSAA en su lugar
+const RETRO_MSAA = 4;
+const RETRO = { activo: false, comp: null, uni: null, escena: null, cam: null, w: 2, h: 2, kd: 3 };
 const CRT_FRAG = `
-uniform sampler2D tDiffuse; uniform vec2 baja;
-varying vec2 vUv;
-vec3 muestra(vec2 uv) { vec2 p = (floor(uv * baja) + 0.5) / baja; return texture2D(tDiffuse, clamp(p, 0.0, 1.0)).rgb; }
+uniform sampler2D tDiffuse; uniform vec2 baja; uniform float kd;
 // Todo está compensado para que el brillo medio no cambie: solo se reparte distinto dentro de cada píxel.
 void main() {
-  vec2 uv = vUv;
-  vec3 c = muestra(uv);
-  vec3 g = 0.5 * (muestra(uv + vec2(1.0 / baja.x, 0.0)) + muestra(uv - vec2(1.0 / baja.x, 0.0)));
-  c = mix(c, g, 0.2);                                        // leve emborronado horizontal
-  float n = fract(52.9829189 * fract(dot(floor(uv * baja), vec2(0.06711056, 0.00583715))));
-  c = floor(c * 31.0 + n) / 31.0;                            // 5 bits por canal con tramado
-  vec2 f = fract(uv * baja);
-  float sl = 1.0 + 0.3 * (sin(f.y * 3.14159265) - 0.63662);  // líneas de barrido (media 1)
-  float sub = floor(f.x * 3.0);
-  vec3 m = vec3(1.0) + 0.2 * (vec3(float(sub < 0.5), float(sub > 0.5 && sub < 1.5), float(sub > 1.5)) - 0.33333); // franjas RGB (media 1)
+  vec2 pos = gl_FragCoord.xy;                                // píxeles reales de pantalla
+  vec2 cel = floor(pos / kd);                                // píxel retro al que pertenece
+  vec3 c = texture2D(tDiffuse, (cel + 0.5) / baja).rgb;
+  float n = fract(52.9829189 * fract(dot(cel, vec2(0.06711056, 0.00583715))));
+  c = floor(c * 63.0 + n) / 63.0;                            // 6 bits por canal con tramado
+  vec2 f = fract(pos / kd);
+  float sl = kd < 2.5 ? 1.0 + 0.18 * (f.y < 0.5 ? 1.0 : -1.0)               // 2 px: una fila clara y otra oscura
+                      : 1.0 + 0.3 * (sin(f.y * 3.14159265) - 0.63662);      // 3 px o más: líneas de barrido suaves (media 1)
+  vec3 m = vec3(1.0);
+  if (kd > 2.5) { float sub = floor(f.x * 3.0); m += 0.18 * (vec3(float(sub < 0.5), float(sub > 0.5 && sub < 1.5), float(sub > 1.5)) - 0.33333); } // franjas RGB (media 1)
   gl_FragColor = vec4(clamp(c * sl * m, 0.0, 1.0), 1.0);
 }`;
 function prepararRetro() {
   if (RETRO.uni) return;
-  RETRO.uni = { tDiffuse: { value: null }, baja: { value: new THREE.Vector2(2, 2) } };
+  RETRO.uni = { tDiffuse: { value: null }, baja: { value: new THREE.Vector2(2, 2) }, kd: { value: 3 } };
   const mat = new THREE.ShaderMaterial({ uniforms: RETRO.uni, vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }', fragmentShader: CRT_FRAG, depthTest: false, depthWrite: false, toneMapped: false });
   RETRO.escena = new THREE.Scene(); RETRO.cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
   const q = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), mat); q.frustumCulled = false; RETRO.escena.add(q);
@@ -464,8 +465,6 @@ function prepararRetro() {
     RETRO.comp = new EffectComposer(E.renderer);
     RETRO.comp.addPass(new RenderPass(E.escena, E.camara));
     RETRO.comp.addPass(new OutputPass());
-    E.fxaa = new ShaderPass(FXAAShader);
-    RETRO.comp.addPass(E.fxaa);
   }
 }
 export function retro(si) {
@@ -492,22 +491,25 @@ function ajustarTamano() {
   E.camara.fov = Math.min(vfov, 76);
   E.camara.updateProjectionMatrix();
   const dpr = window.devicePixelRatio || 1, movil = w < 700 || h < 480;
-  // Con el look retro en móvil la imagen final se pinta a la resolución real de la pantalla (hasta x3), para que
-  // cada píxel del retro sea de 1 px de la web y sus líneas de barrido se vean finas y nítidas.
-  E.renderer.setPixelRatio(RETRO.activo && movil ? Math.min(dpr, 3) : E.pixelRatioBase);
+  // Look retro: la imagen final se pinta a la resolución real de la pantalla (hasta x3).
+  E.renderer.setPixelRatio(RETRO.activo ? Math.min(dpr, 3) : E.pixelRatioBase);
   E.renderer.setSize(w, h, false);
   const comp = E.compositor || RETRO.comp, pr = E.renderer.getPixelRatio();
   if (RETRO.activo && comp) {
-    // Look retro: la escena se dibuja con píxeles grandes y luego se amplía con el filtro CRT.
-    // En móvil, un píxel retro es de 1 px de la web (2 px de pantalla como mínimo); en pantallas grandes, ≈320 líneas.
-    const pix = movil ? Math.max(1, Math.ceil(2 / dpr)) : Math.max(2, Math.round(h / RETRO_LINEAS));
-    RETRO.w = Math.max(2, Math.round(w / pix)); RETRO.h = Math.max(2, Math.round(h / pix));
+    // Cada píxel retro = kd píxeles de pantalla (entero). Móvil: 2-3 (≈1 px web); ordenador: 3 (4 en pantallas muy grandes).
+    const bw = Math.round(w * pr), bh = Math.round(h * pr);
+    RETRO.kd = movil ? Math.min(3, Math.max(2, Math.round(dpr))) : (bh >= 1500 ? 4 : 3);
+    RETRO.w = Math.max(2, Math.ceil(bw / RETRO.kd)); RETRO.h = Math.max(2, Math.ceil(bh / RETRO.kd));
+    for (const rt of [comp.renderTarget1, comp.renderTarget2]) if (rt.samples !== RETRO_MSAA) { rt.samples = RETRO_MSAA; rt.dispose(); }
     comp.setPixelRatio(1); comp.setSize(RETRO.w, RETRO.h);
-    if (E.fxaa) { E.fxaa.enabled = true; E.fxaa.material.uniforms.resolution.value.set(1 / RETRO.w, 1 / RETRO.h); } // FXAA sobre la imagen de baja resolución, antes del filtro CRT
-    RETRO.uni.baja.value.set(RETRO.w, RETRO.h);
+    if (E.fxaa) { E.fxaa.enabled = RETRO_FXAA; if (RETRO_FXAA) E.fxaa.material.uniforms.resolution.value.set(1 / RETRO.w, 1 / RETRO.h); }
+    RETRO.uni.baja.value.set(RETRO.w, RETRO.h); RETRO.uni.kd.value = RETRO.kd;
     if (P.puntos) P.puntos.material.uniforms.escalaPx.value = RETRO.h * 0.55;
   } else {
-    if (comp) { comp.setPixelRatio(pr); comp.setSize(w, h); }
+    if (comp) {
+      for (const rt of [comp.renderTarget1, comp.renderTarget2]) if (rt.samples !== 0) { rt.samples = 0; rt.dispose(); }
+      comp.setPixelRatio(pr); comp.setSize(w, h);
+    }
     if (E.fxaa && comp === E.compositor) { E.fxaa.enabled = true; E.fxaa.material.uniforms.resolution.value.set(1 / (w * pr), 1 / (h * pr)); }
     if (P.puntos) P.puntos.material.uniforms.escalaPx.value = h * 0.55 * pr;
   }
@@ -521,6 +523,7 @@ export function vista(v, inmediato = false) {
   const vert = E.vertical;
   if (v === 'menu') { E.camPosObj.set(vert ? 0.6 : 1.4, vert ? 2.3 : 2.2, vert ? 8.4 : 7.8); E.camMiraObj.set(vert ? 0.2 : 2.5, vert ? -0.2 : 1.3, 1.4); }
   else if (v === 'titulo') { E.camPosObj.set(0.4, 2.0, vert ? 8.6 : 7.4); E.camMiraObj.set(0, vert ? -0.4 : -0.1, 1.4); }
+  else if (v === 'resultado') { E.camPosObj.set(vert ? 0 : 1.4, 2.2, vert ? 10.5 : 7.8); E.camMiraObj.set(vert ? 0 : 2.5, vert ? -1.6 : 1.3, 1.4); } // Lumi entera arriba (móvil) o a la izquierda, con las ventanas debajo o a la derecha
   else if (v === 'jefe') { E.camPosObj.set(0, vert ? 4.4 : 3.8, vert ? 13 : 10.5); E.camMiraObj.set(0, vert ? 4.6 : 5.2, -12); } // desde abajo: el jefe impone
   else { E.camPosObj.set(0, vert ? 5.6 : 5.6, vert ? 10.4 : 10.2); E.camMiraObj.set(0, vert ? 3.4 : -1.5, -9); } // vertical: Lumi abajo, justo sobre los botones
   if (inmediato) { E.camPos.copy(E.camPosObj); E.camMira.copy(E.camMiraObj); }
@@ -1032,7 +1035,7 @@ function actualizar(dt, real) {
 
   // Lumi.
   const h = E.heroe;
-  h.rotObj = E.vista === 'menu' || E.vista === 'titulo' ? 0 : Math.PI;
+  h.rotObj = E.vista === 'menu' || E.vista === 'titulo' || E.vista === 'resultado' ? 0 : Math.PI;
   h.grupo.rotation.y += (h.rotObj - h.grupo.rotation.y) * (1 - Math.exp(-real * 6));
   if (h.salto > 0) h.salto = Math.max(0, h.salto - real);
   h.cuerpo.position.y = h.salto > 0 ? Math.abs(Math.sin(h.salto * Math.PI * 2.5)) * 0.6 : 0;

@@ -1,11 +1,11 @@
 // ¡Palabrones! · Interfaz: pantallas, menús, HUD, explicaciones, resultados y teclado.
-import * as E from './escena.js?v=1.1.9';
-import { J, empezar, lanzar, congelar, pausar, abandonar } from './juego.js?v=1.1.9';
-import * as Pr from './progreso.js?v=1.1.9';
-import { CATS, TRUCOS, MUNDOS, TIENDA, AVATARES, claveNivel } from './datos.js?v=1.1.9';
-import { iniciarAudio, musica, volumenes, sfx, precargarMusica } from './audio.js?v=1.1.9';
-import { decir, callar, activarVoz, desbloquearVoz } from './voz.js?v=1.1.9';
-import { dibujar as dibujarEtiquetas, limpiar as limpiarEtiquetas } from './etiquetas.js?v=1.1.9';
+import * as E from './escena.js?v=1.1.11';
+import { J, empezar, lanzar, congelar, pausar, abandonar } from './juego.js?v=1.1.11';
+import * as Pr from './progreso.js?v=1.1.11';
+import { CATS, TRUCOS, MUNDOS, TIENDA, AVATARES, claveNivel } from './datos.js?v=1.1.11';
+import { iniciarAudio, musica, volumenes, sfx, precargarMusica } from './audio.js?v=1.1.11';
+import { decir, callar, activarVoz, desbloquearVoz } from './voz.js?v=1.1.11';
+import { dibujar as dibujarEtiquetas, limpiar as limpiarEtiquetas } from './etiquetas.js?v=1.1.11';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -426,7 +426,7 @@ $('#ex-vale').addEventListener('click', cerrarExplicacion);
 function mostrarResultado(r) {
   const p = perfil();
   mostrar('p-resultado');
-  E.vista('menu');
+  E.vista('resultado');
   let titulo;
   const esJefe = r.modo === 'campana' && MUNDOS[r.mundo].niveles[r.nivel].tipo === 'jefe';
   if (r.modo === 'campana') titulo = r.superado ? (esJefe ? '¡Jefe vencido!' : '¡Nivel superado!') : '¡Oh, no! Otra vez';
@@ -498,7 +498,7 @@ function toast(icono, titulo, texto, clase) {
   if (pantalla === 'p-juego') { sfx.logro(); anunciar({ icono, titulo, sub: texto, clase: clase === 'logro' ? 'logro' : 'mision', ms: 2600 }); return; }
   const ahora = performance.now();
   const espera = Math.max(0, tToast - ahora);
-  tToast = Math.max(ahora, tToast) + 1200;
+  tToast = Math.max(ahora, tToast) + 3700; // de uno en uno: no tapan a Lumi
   setTimeout(() => {
     const d = document.createElement('div');
     d.className = 'aviso ' + clase;

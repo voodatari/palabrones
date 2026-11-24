@@ -1,5 +1,19 @@
 # Cambios de ¡Palabrones!
 
+## v1.1.11 · 2026-11-24 · Lumi siempre a la vista al terminar un nivel
+
+- Al superar (o perder) un nivel, Lumi se ve entera mientras aparecen las ventanas: en horizontal se coloca a la
+  izquierda y el resultado, la subida de nivel y demás ventanas van a la derecha, en el espacio libre; en vertical
+  (móvil) Lumi queda arriba y las ventanas abajo, sin tapar nada. Los avisos de logros y misiones salen de uno en uno
+  (en horizontal, abajo a la izquierda) para no taparla.
+
+## v1.1.10 · 2026-11-24 · Look retro nítido, sin moiré
+
+- Look retro: cada píxel retro mide ahora un número entero de píxeles de pantalla y el dibujo final se hace a la
+  resolución real del monitor o del móvil, así que las líneas de barrido y las franjas de color encajan y ya no hay
+  moiré. Se quita el emborronado horizontal y el FXAA sobre la imagen pequeña (la desenfocaba): el borde de los
+  objetos se suaviza ahora con MSAA al dibujar, y los píxeles quedan nítidos.
+
 ## v1.1.9 · 2026-11-24 · Retoques de imagen y vista vertical
 
 - Se quita el bloom (brillo difuso), que restaba contraste a la imagen.
