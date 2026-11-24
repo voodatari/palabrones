@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#1a1030">
+  <title>¡Palabrones! · Sustantivos, adjetivos y verbos</title>
+  <meta name="description" content="Videojuego 3D para practicar sustantivos, adjetivos y verbos: vence a los Palabrones con el hechizo correcto.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A7%99%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Lilita+One&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/estilo.css?v=1.1.0">
+  <script src="js/escala.js?v=1.1.0"></script>
+</head>
+<body>
+  <canvas id="c3d" aria-hidden="true"></canvas>
+  <div id="velo"></div>
+  <div id="peligro" aria-hidden="true"></div>
+
+  <!-- ===== TÍTULO ===== -->
+  <section id="p-titulo" class="pantalla activa">
+    <div class="titulo-caja">
+      <div class="logo" aria-label="¡Palabrones!">
+        <span class="l1">¡Pala</span><span class="l2">bro</span><span class="l3">nes!</span>
+      </div>
+      <p class="subtitulo">La batalla de los <b class="tS">sustantivos</b>, <b class="tA">adjetivos</b> y <b class="tV">verbos</b></p>
+      <button id="b-empezar" class="btn btn-grande btn-oro pulso">Toca para empezar</button>
+      <div id="carga" class="carga"><i id="carga-barra"></i></div>
+      <p id="aviso-carga" class="nota">Cargando el mundo…</p>
+    </div>
+  </section>
+
+  <!-- ===== PERFILES ===== -->
+  <section id="p-perfiles" class="pantalla">
+    <div class="panel panel-ancho ajustar">
+      <h1 class="h-panel">¿Quién juega?</h1>
+      <div id="lista-perfiles" class="lista-perfiles"></div>
+      <div class="fila-botones">
+        <button id="b-nuevo" class="btn btn-verde">＋ Nuevo jugador</button>
+        <button id="b-invitado" class="btn btn-gris">Jugar sin guardar</button>
+      </div>
+    </div>
+    <div id="m-nuevo" class="modal">
+      <div class="panel ajustar">
+        <h2 class="h-panel">Nuevo jugador</h2>
+        <label class="etiqueta" for="i-nombre">Tu nombre</label>
+        <input id="i-nombre" class="entrada" maxlength="16" autocomplete="off" placeholder="Escribe tu nombre">
+        <p class="etiqueta">Elige tu escudo</p>
+        <div id="lista-avatares" class="lista-avatares"></div>
+        <div class="fila-botones">
+          <button id="b-cancelar-nuevo" class="btn btn-gris">Cancelar</button>
+          <button id="b-crear" class="btn btn-verde">¡Crear!</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== MENÚ PRINCIPAL ===== -->
+  <section id="p-inicio" class="pantalla">
+    <header class="barra-jugador">
+      <button id="chip-jugador" class="chip-jugador" title="Cambiar de jugador">
+        <span id="j-avatar" class="avatar">🦊</span>
+        <span class="chip-datos">
+          <span id="j-nombre" class="j-nombre">Nombre</span>
+          <span id="j-rango" class="j-rango">Aprendiz</span>
+          <span class="xp"><i id="j-xp"></i><b id="j-nivel">Nv 1</b></span>
+        </span>
+      </button>
+      <div class="contadores">
+        <span class="contador" title="Racha de días"><span class="ico" data-ico="llama"></span><b id="j-racha">0</b></span>
+        <span class="contador" title="Estrellas"><span class="ico" data-ico="estrella"></span><b id="j-estrellas">0</b></span>
+        <span class="contador oro" title="Monedas"><span class="ico" data-ico="moneda"></span><b id="j-monedas">0</b></span>
+        <button id="b-opciones" class="btn-icono" title="Opciones"><span class="ico" data-ico="engranaje"></span></button>
+      </div>
+    </header>
+    <div class="menu-cuerpo">
+      <div class="menu-botones ajustar">
+        <button id="b-aventura" class="btn btn-mega btn-oro"><span class="ico" data-ico="espada"></span><span><b>Aventura</b><small id="sub-aventura">Mundo 1</small></span></button>
+        <div class="fila-2">
+          <button id="b-entrenar" class="btn btn-azul btn-menu"><span class="ico" data-ico="libro"></span><span><b>Entrenar</b><small id="sub-entrenar">Tus fallos</small></span><i id="globo-repaso" class="globo oculto">0</i></button>
+          <button id="b-desafio" class="btn btn-rojo btn-menu"><span class="ico" data-ico="calavera"></span><span><b>Desafío</b><small id="sub-desafio">Récord 0</small></span></button>
+        </div>
+        <div class="fila-3">
+          <button id="b-tienda" class="btn btn-morado btn-mini"><span class="ico" data-ico="sombrero"></span>Tienda</button>
+          <button id="b-logros" class="btn btn-morado btn-mini"><span class="ico" data-ico="trofeo"></span>Logros</button>
+          <button id="b-progreso" class="btn btn-morado btn-mini"><span class="ico" data-ico="grafica"></span>Progreso</button>
+        </div>
+        <div class="misiones">
+          <h3><span class="ico" data-ico="diana"></span>Misiones de hoy</h3>
+          <ul id="lista-misiones"></ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== MAPA ===== -->
+  <section id="p-mapa" class="pantalla">
+    <header class="barra-simple">
+      <button class="btn-icono b-volver" title="Volver"><span class="ico" data-ico="atras"></span></button>
+      <h1 class="h-barra">Aventura</h1>
+      <span class="contador"><span class="ico" data-ico="estrella"></span><b id="mapa-estrellas">0</b></span>
+    </header>
+    <div class="mapa-cuerpo ajustar">
+      <button id="mapa-ant" class="btn-flecha" title="Mundo anterior"><span class="ico" data-ico="atras"></span></button>
+      <div class="mapa-mundo">
+        <p id="mapa-num" class="mapa-num">Mundo 1</p>
+        <h2 id="mapa-nombre" class="mapa-nombre">Pradera Pétalo</h2>
+        <p id="mapa-lema" class="mapa-lema">Donde empiezan las palabras</p>
+        <div id="mapa-niveles" class="mapa-niveles"></div>
+        <div id="mapa-puntos" class="mapa-puntos"></div>
+      </div>
+      <button id="mapa-sig" class="btn-flecha" title="Mundo siguiente"><span class="ico" data-ico="adelante"></span></button>
+    </div>
+  </section>
+
+  <!-- ===== TIENDA ===== -->
+  <section id="p-tienda" class="pantalla">
+    <header class="barra-simple">
+      <button class="btn-icono b-volver" title="Volver"><span class="ico" data-ico="atras"></span></button>
+      <h1 class="h-barra">Tienda</h1>
+      <span class="contador oro"><span class="ico" data-ico="moneda"></span><b id="tienda-monedas">0</b></span>
+    </header>
+    <div class="panel panel-lateral ajustar">
+      <div class="pestanas" role="tablist">
+        <button class="pestana activa" data-tab="sombreros">Sombreros</button>
+        <button class="pestana" data-tab="colores">Auras</button>
+        <button class="pestana" data-tab="mascotas">Mascotas</button>
+      </div>
+      <div id="tienda-lista" class="tienda-lista"></div>
+      <p class="nota">Gana monedas venciendo Palabrones, consiguiendo estrellas y cumpliendo misiones.</p>
+    </div>
+  </section>
+
+  <!-- ===== LOGROS ===== -->
+  <section id="p-logros" class="pantalla">
+    <header class="barra-simple">
+      <button class="btn-icono b-volver" title="Volver"><span class="ico" data-ico="atras"></span></button>
+      <h1 class="h-barra">Logros</h1>
+      <span class="contador"><span class="ico" data-ico="trofeo"></span><b id="logros-cuenta">0</b></span>
+    </header>
+    <div class="panel panel-ancho ajustar">
+      <div id="lista-logros" class="lista-logros"></div>
+      <p id="logro-detalle" class="logro-detalle">Toca una insignia para ver cómo se consigue.</p>
+    </div>
+  </section>
+
+  <!-- ===== PROGRESO ===== -->
+  <section id="p-progreso" class="pantalla">
+    <header class="barra-simple">
+      <button class="btn-icono b-volver" title="Volver"><span class="ico" data-ico="atras"></span></button>
+      <h1 class="h-barra">Mi progreso</h1>
+      <button id="b-clase" class="btn btn-azul btn-peq">La clase</button>
+    </header>
+    <div class="panel panel-ancho ajustar">
+      <div class="prog-cabecera">
+        <span id="prog-avatar" class="avatar avatar-g">🦊</span>
+        <div><h2 id="prog-nombre" class="prog-nombre">Nombre</h2><p id="prog-rango" class="prog-rango"></p></div>
+        <div id="prog-totales" class="prog-totales"></div>
+      </div>
+      <div id="prog-dominio" class="prog-dominio"></div>
+      <div class="prog-fila">
+        <div class="prog-caja"><h3>Acierto en las últimas partidas</h3><div id="prog-grafica" class="prog-grafica"></div></div>
+        <div class="prog-caja"><h3>Palabras para repasar</h3><div id="prog-dificiles" class="prog-dificiles"></div></div>
+      </div>
+      <div class="fila-botones"><button id="b-copiar" class="btn btn-gris btn-peq">Copiar informe para el profe</button></div>
+    </div>
+  </section>
+
+  <!-- ===== CLASE ===== -->
+  <section id="p-clase" class="pantalla">
+    <header class="barra-simple">
+      <button class="btn-icono b-volver" data-volver="p-progreso" title="Volver"><span class="ico" data-ico="atras"></span></button>
+      <h1 class="h-barra">La clase (este dispositivo)</h1>
+      <span></span>
+    </header>
+    <div class="panel panel-ancho ajustar"><div id="tabla-clase"></div></div>
+  </section>
+
+  <!-- ===== OPCIONES ===== -->
+  <section id="p-opciones" class="pantalla">
+    <header class="barra-simple">
+      <button class="btn-icono b-volver" title="Volver"><span class="ico" data-ico="atras"></span></button>
+      <h1 class="h-barra">Opciones</h1>
+      <span></span>
+    </header>
+    <div class="panel ajustar">
+      <label class="opcion"><span>Música</span><input id="o-musica" type="range" min="0" max="1" step="0.05"></label>
+      <label class="opcion"><span>Efectos</span><input id="o-efectos" type="range" min="0" max="1" step="0.05"></label>
+      <label class="opcion opcion-sw"><span><b>Voz que explica</b><small>Lee en voz alta por qué te has equivocado.</small></span><input id="o-voz" type="checkbox" class="interruptor"></label>
+      <label class="opcion"><span><b>Velocidad del juego</b><small id="o-velocidad-txt">Normal · x1,0</small></span><input id="o-velocidad" type="range" min="0.6" max="1.6" step="0.1"></label>
+      <div class="opcion"><span><b>Gráficos</b><small>«Ligeros» va mejor en tablets y equipos antiguos (recarga la página).</small></span>
+        <div class="segmentos" id="o-calidad"><button data-v="auto">Auto</button><button data-v="alta">Bonitos</button><button data-v="baja">Ligeros</button></div></div>
+      <div class="fila-botones"><button id="b-borrar" class="btn btn-rojo btn-peq">Borrar este jugador</button></div>
+      <p class="nota creditos">¡Palabrones! v1.0 · Juego de aula de Lengua · Gráficos 3D con three.js (MIT) · Modelos 3D de Quaternius (CC0; mago CC-BY 3.0) · Música de Pixabay o generada en el navegador.</p>
+    </div>
+  </section>
+
+  <!-- ===== PARTIDA (HUD) ===== -->
+  <section id="p-juego" class="pantalla hud">
+    <div id="etiquetas" class="etiquetas" aria-hidden="true"></div>
+    <div class="hud-arriba">
+      <div class="hud-izq">
+        <div id="hud-vidas" class="hud-vidas"></div>
+        <div id="hud-progreso" class="hud-progreso"><i></i><b>0/10</b></div>
+      </div>
+      <div id="hud-centro" class="hud-centro">
+        <div id="hud-objetivo" class="hud-objetivo vacio">
+          <p class="obj-pregunta">¿Qué es…?</p>
+          <p id="obj-palabra" class="obj-palabra">—</p>
+          <p id="obj-frase" class="obj-frase"></p>
+          <div id="hud-racha" class="hud-racha oculto"><span class="ico" data-ico="llama"></span><b id="racha-mult">x2</b><small id="racha-n">5 seguidas</small></div>
+        </div>
+        <div id="hud-jefe" class="hud-jefe oculto">
+          <p id="jefe-nombre" class="jefe-nombre">Jefe</p>
+          <div class="jefe-vida"><i id="jefe-vida"></i></div>
+          <div class="jefe-tiempo"><i id="jefe-tiempo"></i></div>
+        </div>
+        <div id="banner" class="banner" aria-live="polite"></div>
+      </div>
+      <div class="hud-der">
+        <div class="hud-puntos"><b id="hud-puntos">0</b><small>puntos</small></div>
+        <button id="b-pausa" class="btn-icono" title="Pausa (Esc)"><span class="ico" data-ico="pausa"></span></button>
+      </div>
+    </div>
+    <div class="hud-abajo">
+      <button id="b-congelar" class="btn-super" title="Congelar (espacio)"><span class="ico" data-ico="copo"></span><i id="super-carga"></i></button>
+      <div class="hechizos">
+        <button class="hechizo hS" data-cat="S"><span class="ico" data-ico="nombre"></span><b>Sustantivo</b><small>nombra</small><kbd>1</kbd></button>
+        <button class="hechizo hA" data-cat="A"><span class="ico" data-ico="cualidad"></span><b>Adjetivo</b><small>cómo es</small><kbd>2</kbd></button>
+        <button class="hechizo hV" data-cat="V"><span class="ico" data-ico="accion"></span><b>Verbo</b><small>acción</small><kbd>3</kbd></button>
+      </div>
+    </div>
+    <div id="cuenta" class="cuenta"></div>
+  </section>
+
+  <!-- ===== RESULTADO ===== -->
+  <section id="p-resultado" class="pantalla">
+    <div class="panel panel-resultado ajustar">
+      <h1 id="res-titulo" class="h-panel">¡Nivel superado!</h1>
+      <div id="res-estrellas" class="res-estrellas"></div>
+      <div class="res-datos">
+        <div><b id="res-puntos">0</b><small>puntos</small></div>
+        <div><b id="res-acierto">0 %</b><small>acierto</small></div>
+        <div><b id="res-racha">0</b><small>mejor racha</small></div>
+      </div>
+      <div id="res-cats" class="res-cats"></div>
+      <div class="res-premios">
+        <span class="premio"><span class="ico" data-ico="moneda"></span>+<b id="res-monedas">0</b></span>
+        <span class="premio xp-premio">+<b id="res-xp">0</b> XP</span>
+      </div>
+      <div class="xp xp-grande"><i id="res-barra"></i><b id="res-nivel">Nv 1</b></div>
+      <div class="fila-botones">
+        <button id="res-menu" class="btn btn-gris">Menú</button>
+        <button id="res-repetir" class="btn btn-azul">Repetir</button>
+        <button id="res-seguir" class="btn btn-verde">Siguiente</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== VENTANAS ===== -->
+  <div id="m-intro" class="modal">
+    <div class="panel ajustar">
+      <p id="intro-num" class="intro-num">Mundo 1 · Nivel 1</p>
+      <h2 id="intro-nombre" class="h-panel">Nombres y acciones</h2>
+      <div id="intro-estrellas" class="mini-estrellas"></div>
+      <p id="intro-nuevo" class="intro-nuevo"></p>
+      <div id="intro-hechizos" class="intro-hechizos"></div>
+      <p id="intro-controles" class="nota">Toca el hechizo o pulsa <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd>. El Palabrón marcado con la flecha es tu objetivo.</p>
+      <div class="fila-botones">
+        <button id="intro-volver" class="btn btn-gris">Volver</button>
+        <button id="intro-jugar" class="btn btn-oro btn-grande">¡A luchar!</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="m-explica" class="modal">
+    <div class="panel panel-explica ajustar">
+      <p id="ex-titulo" class="ex-titulo">¡Ups!</p>
+      <p id="ex-palabra" class="ex-palabra">mesa</p>
+      <p id="ex-es" class="ex-es">es un <b>sustantivo</b></p>
+      <p id="ex-frase" class="ex-frase"></p>
+      <p id="ex-elegiste" class="ex-elegiste"></p>
+      <button id="ex-vale" class="btn btn-verde btn-grande">¡Entendido!</button>
+    </div>
+  </div>
+
+  <div id="m-pausa" class="modal">
+    <div class="panel ajustar">
+      <h2 class="h-panel">Pausa</h2>
+      <div class="trucos" id="pausa-trucos"></div>
+      <div class="fila-botones">
+        <button id="pausa-salir" class="btn btn-rojo">Salir</button>
+        <button id="pausa-seguir" class="btn btn-verde btn-grande">Seguir</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="m-nivel" class="modal">
+    <div class="panel panel-nivel ajustar">
+      <p class="intro-num">¡Subes de nivel!</p>
+      <p id="nivel-num" class="nivel-num">2</p>
+      <p id="nivel-rango" class="nivel-rango"></p>
+      <p class="premio"><span class="ico" data-ico="moneda"></span>+<b id="nivel-premio">0</b> monedas</p>
+      <button id="nivel-vale" class="btn btn-oro btn-grande">¡Genial!</button>
+    </div>
+  </div>
+
+  <div id="m-confirmar" class="modal">
+    <div class="panel ajustar">
+      <h2 id="conf-titulo" class="h-panel">¿Seguro?</h2>
+      <p id="conf-texto" class="intro-nuevo"></p>
+      <div class="fila-botones"><button id="conf-no" class="btn btn-gris">No</button><button id="conf-si" class="btn btn-rojo">Sí</button></div>
+    </div>
+  </div>
+
+  <div id="cargando-mundo" class="modal"><div class="panel panel-carga"><p class="h-panel">Cargando el mundo…</p><div class="carga"><i id="cargando-barra"></i></div></div></div>
+
+  <div id="avisos" class="avisos" aria-live="polite"></div>
+  <div id="popups" class="popups"></div>
+
+  <script type="importmap">{ "imports": { "three": "./js/lib/three.module.js?v=1.1.0" } }</script>
+  <script type="module" src="js/main.js?v=1.1.0"></script>
+</body>
+</html>
