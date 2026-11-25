@@ -1,5 +1,9 @@
 # Cambios de ¡Palabrones!
 
+## v1.1.25 · 2026-11-25 · Niebla = palabras borrosas
+
+- La niebla del multijugador ya no dibuja una forma encima del carril (no encajaba con la perspectiva en todas las pantallas): ahora **las palabras de los Palabrones del carril afectado se ven borrosas** durante el ataque, y aparece una nube 🌫️ junto al nombre del jugador. Funciona igual en cualquier tamaño de pantalla.
+
 ## v1.1.24 · 2026-11-25 · Niebla del multijugador con la forma del carril
 
 - El ataque de **niebla** ya no tapa un rectángulo: se calcula proyectando el carril 3D del jugador afectado, así que la niebla sigue la perspectiva del carril (se estrecha hacia el fondo), cubre las palabras de sus Palabrones y deja visible a su mago.

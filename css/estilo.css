@@ -573,13 +573,8 @@ html.vertical .final-titulo { font-size: 2.1rem; }
 .mj-b small { font-size: 0.65rem; opacity: 0.9; font-family: var(--fuente); }
 .mj-b.pulsado { transform: translateY(0.25rem); box-shadow: 0 0.05rem 0 rgba(0, 0, 0, 0.4); filter: brightness(1.2); }
 .mj-col.pegado .mj-botones { filter: grayscale(1); opacity: 0.45; }
-.mj-col.niebla::before { content: '🌫️ NIEBLA'; position: absolute; z-index: 0; inset: 0; clip-path: var(--nb, none); display: flex; align-items: flex-start; justify-content: center; padding-top: var(--nb-y, 20%);
-  background: radial-gradient(ellipse 60% 22% at 30% 30%, #fff, transparent), radial-gradient(ellipse 55% 20% at 72% 55%, #fff, transparent), radial-gradient(ellipse 60% 22% at 40% 80%, #fff, transparent),
-    linear-gradient(180deg, rgb(222, 232, 248), rgb(200, 213, 238));
-  -webkit-mask-image: linear-gradient(180deg, transparent var(--nb-t, 0), #000 calc(var(--nb-t, 0px) + 1.2rem), #000 calc(var(--nb-b, 100%) - 2rem), transparent var(--nb-b, 100%));
-  mask-image: linear-gradient(180deg, transparent var(--nb-t, 0), #000 calc(var(--nb-t, 0px) + 1.2rem), #000 calc(var(--nb-b, 100%) - 2rem), transparent var(--nb-b, 100%));
-  color: #5a6b8c; font-family: var(--fuente-t); font-size: 1.5rem; pointer-events: none; animation: nieblaEntra 0.3s ease-out both; }
-@keyframes nieblaEntra { from { opacity: 0; } to { opacity: 1; } }
+.mj-col.niebla .mj-cab::after { content: '🌫️'; font-size: 1.4rem; margin-left: 0.2rem; }
+.etq.borroso { filter: blur(0.42em); }
 .mj-col.fuera { opacity: 0.6; filter: grayscale(0.7); }
 .mj-col.fuera .mj-botones, .mj-col.fuera .mj-ataque { visibility: hidden; }
 .mj-pop { position: absolute; z-index: 5; transform: translate(-50%, -50%); font-family: var(--fuente-t); font-size: 1.9rem; color: #fff; -webkit-text-stroke: 0.07em var(--c); paint-order: stroke fill; text-shadow: 0 0.1em 0 rgba(0, 0, 0, 0.4); pointer-events: none; text-align: center; animation: mjSube 1.1s ease-out forwards; }

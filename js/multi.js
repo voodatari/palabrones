@@ -6,11 +6,11 @@
 // el camino sigue sin él). La partida dura 1, 2 o 3 minutos (gana quien más puntos tiene) o es infinita (gana el último en pie).
 // Competencia: cada acierto carga el ATAQUE (⚡). Con 3 cargas se lanza un obstáculo a un rival: niebla (no deja leer las palabras),
 // pegajoso (bloquea sus botones un momento), Palabrón extra en su carril o aceleración de sus Palabrones.
-import * as E from './escena.js?v=1.1.24';
-import { sfx, musica } from './audio.js?v=1.1.24';
-import { CATS, MUNDOS } from './datos.js?v=1.1.24';
-import { generadorMulti } from './juego.js?v=1.1.24';
-import { decir, callar } from './voz.js?v=1.1.24';
+import * as E from './escena.js?v=1.1.25';
+import { sfx, musica } from './audio.js?v=1.1.25';
+import { CATS, MUNDOS } from './datos.js?v=1.1.25';
+import { generadorMulti } from './juego.js?v=1.1.25';
+import { decir, callar } from './voz.js?v=1.1.25';
 
 const Z_LLEGADA = -2.2, Z_SALIDA = -32;
 const PUNTOS_INICIO = 300;   // los puntos hacen de «vida»: a 0 el mago muere
@@ -190,7 +190,6 @@ function actualizar(dt, real) {
   for (const j of M.jugadores) { const o = j.vivo ? objetivoDe(j.i) : null; E.multiObjetivo(j.i, o ? o.id : null); }
   for (const j of M.jugadores) {
     if (j.msgT > 0) { j.msgT -= real; if (j.msgT <= 0) mensaje(j.i, ''); }
-    if (j.niebla > 0 && M.t % 1 < 0.05) formaNiebla(j); // por si cambia el tamaño de la ventana
     for (const k of ['niebla', 'bloq', 'acel']) if (j[k] > 0) { j[k] -= real; if (j[k] <= 0) { j[k] = 0; efectoCols(j); } }
     if (j.elegir > 0) { j.elegir -= real; if (j.elegir <= 0) { j.elegir = 0; if (j.vivo) lanzarAtaque(j.i, lider(j.i)); } }
   }
@@ -317,18 +316,9 @@ function salidaExtra(j) {
   if (mon) mon.hx = x;
   M.monstruos.push({ id, item: { it, rugio: true, primero: true }, p: j.i, x, z: Z_SALIDA + 8, vivo: true, pendiente: false });
 }
-// La niebla tapa el carril con su forma real (perspectiva): un polígono calculado proyectando el carril 3D en pantalla.
-function formaNiebla(j) {
-  const col = $('.mj-col[data-p="' + j.i + '"]'), r = col.getBoundingClientRect();
-  const ps = E.multiContornoCarril(j.i);
-  const ys = ps.map((p) => p[1]);
-  col.style.setProperty('--nb', 'polygon(' + ps.map((p) => (p[0] - r.left).toFixed(1) + 'px ' + (p[1] - r.top).toFixed(1) + 'px').join(',') + ')');
-  col.style.setProperty('--nb-t', (Math.min(...ys) - r.top).toFixed(0) + 'px'); col.style.setProperty('--nb-b', (Math.max(...ys) - r.top).toFixed(0) + 'px');
-  col.style.setProperty('--nb-y', (Math.min(...ys) + (Math.max(...ys) - Math.min(...ys)) * 0.3 - r.top).toFixed(0) + 'px');
-}
 function efectoCols(j) {
   const col = $('.mj-col[data-p="' + j.i + '"]');
-  if (j.niebla > 0) formaNiebla(j);
+  E.default.multiNiebla[j.i] = j.niebla > 0;
   col.classList.toggle('niebla', j.niebla > 0);
   col.classList.toggle('pegado', j.bloq > 0);
 }

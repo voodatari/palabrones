@@ -7,8 +7,8 @@
 //  3. Las demás se apartan hacia arriba para no pisarse; si no caben o se alejarían demasiado, se ocultan.
 //  4. Nada se pone sobre el panel de la pregunta (se respeta su borde inferior).
 //  5. Los monstruos lejanos no llevan etiqueta hasta que están a una distancia en la que se pueda leer.
-import * as THREE from './lib/three.module.js?v=1.1.24';
-import E from './escena.js?v=1.1.24';
+import * as THREE from './lib/three.module.js?v=1.1.25';
+import E from './escena.js?v=1.1.25';
 
 const Z_VISIBLE = -33;       // a partir de aquí (más cerca de Lumi) los no-objetivo ya enseñan su palabra
 const HUECO = 6;             // píxeles entre la cabeza y la etiqueta
@@ -62,6 +62,8 @@ export function dibujar(real) {
     const o = mapa.get(c.m.id) || crear(c.m);
     if (o.obj !== c.esObj) { o.obj = c.esObj; o.el.classList.toggle('objetivo', c.esObj); medir(o); }
     else if (o.re > 0) { o.re--; medir(o); } // las primeras veces se vuelve a medir (por si la tipografía tarda)
+    if (E.multi) { const x = c.m.g.position.x, borroso = E.multiNiebla[x < -6 ? 0 : x < 0 ? 1 : x < 6 ? 2 : 3]; if (o.borroso !== borroso) { o.borroso = borroso; o.el.classList.toggle('borroso', borroso); } }
+    else if (o.borroso) { o.borroso = false; o.el.classList.remove('borroso'); }
     if (!o.w) continue;
     const hueco = c.esObj ? HUECO_OBJETIVO : HUECO;
     const left = Math.min(W - o.w - 6, Math.max(6, c.sx - o.w / 2));
