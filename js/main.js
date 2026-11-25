@@ -1,11 +1,11 @@
 // ¡Palabrones! · Interfaz: pantallas, menús, HUD, explicaciones, resultados y teclado.
-import * as E from './escena.js?v=1.1.22';
-import { J, empezar, lanzar, congelar, pausar, abandonar } from './juego.js?v=1.1.22';
-import * as Pr from './progreso.js?v=1.1.22';
-import { CATS, TRUCOS, MUNDOS, TIENDA, AVATARES, claveNivel } from './datos.js?v=1.1.22';
-import { iniciarAudio, musica, volumenes, sfx, precargarMusica } from './audio.js?v=1.1.22';
-import { decir, callar, activarVoz, desbloquearVoz } from './voz.js?v=1.1.22';
-import { dibujar as dibujarEtiquetas, limpiar as limpiarEtiquetas } from './etiquetas.js?v=1.1.22';
+import * as E from './escena.js?v=1.1.23';
+import { J, empezar, lanzar, congelar, pausar, abandonar } from './juego.js?v=1.1.23';
+import * as Pr from './progreso.js?v=1.1.23';
+import { CATS, TRUCOS, MUNDOS, TIENDA, AVATARES, claveNivel } from './datos.js?v=1.1.23';
+import { iniciarAudio, musica, volumenes, sfx, precargarMusica } from './audio.js?v=1.1.23';
+import { decir, callar, activarVoz, desbloquearVoz } from './voz.js?v=1.1.23';
+import { dibujar as dibujarEtiquetas, limpiar as limpiarEtiquetas } from './etiquetas.js?v=1.1.23';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -735,14 +735,18 @@ document.addEventListener('keydown', (e) => {
 });
 
 // Para las pruebas automáticas.
-// Modo multijugador EXPERIMENTAL: solo existe si la dirección lleva «?multi» (se carga bajo demanda, no afecta al juego normal).
-if (/[?&]multi\b/.test(location.search)) {
-  import('./multi.js?v=1.1.22').then((mod) => {
-    const mj = mod.montarMulti({ mostrar, irA, asegurarTema, ajustarTodo, restaurarAspecto });
-    const b = document.createElement('button');
-    b.id = 'b-multi'; b.className = 'btn btn-verde btn-mini'; b.innerHTML = '👥 Multijugador <small>experimental · 4 en pizarra</small>';
-    b.addEventListener('click', () => { sfx.click(); mj.abrir(); });
-    $('.menu-botones .fila-3').after(b);
-  }).catch((e) => console.warn('multijugador no disponible', e));
+// Modo multijugador (4 en pizarra): el botón está siempre en el menú y el módulo se carga solo al pulsarlo (no pesa en el juego normal).
+{
+  let mj = null;
+  const b = document.createElement('button');
+  b.id = 'b-multi'; b.className = 'btn btn-verde btn-mini'; b.innerHTML = '👥 Multijugador <small>4 en pizarra digital</small>';
+  b.addEventListener('click', async () => {
+    sfx.click();
+    try {
+      if (!mj) { const mod = await import('./multi.js?v=1.1.23'); mj = mod.montarMulti({ mostrar, irA, asegurarTema, ajustarTodo, restaurarAspecto }); }
+      mj.abrir();
+    } catch (err) { console.warn('multijugador no disponible', err); }
+  });
+  $('.menu-botones .fila-3').after(b);
 }
 window.__palabrones = { J, Pr, E, mostrar, UI, jugar, introNivel, pintarMapa, irA };

@@ -1,5 +1,10 @@
 # Cambios de ¡Palabrones!
 
+## v1.1.23 · 2026-11-25 · Multijugador siempre disponible y más ligero
+
+- El botón **Multijugador** ya aparece siempre en el menú (no hace falta `?multi`). El módulo se descarga solo al pulsarlo, así que el juego normal no pesa más. Sigue exigiendo pantalla grande en horizontal.
+- Mientras dura el multijugador la escena se dibuja a **la mitad de resolución por lado** (la cuarta parte de los píxeles; con el look CRT, píxeles retro el doble de grandes) y se apaga la oclusión ambiental de «Bonitos». Los menús, botones y palabras siguen nítidos porque son HTML. Al salir vuelve la resolución normal.
+
 ## v1.1.22 · 2026-11-25 · Multijugador con tiempo: nadie muere
 
 - En las partidas de 1, 2 o 3 minutos del modo multijugador ya no se muere: los puntos nunca bajan de 0 y gana quien más puntos tenga al terminar el reloj. Solo en «Infinito» el mago que llega a 0 puntos cae y se queda atrás (gana el último en pie).

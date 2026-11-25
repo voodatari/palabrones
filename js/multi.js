@@ -1,16 +1,16 @@
 // ¡Palabrones! · Modo multijugador EXPERIMENTAL: 4 jugadores a lo ancho de una pizarra digital.
-// Solo existe si la dirección lleva «?multi» (main.js carga este módulo únicamente en ese caso).
+// Se carga bajo demanda al pulsar el botón «Multijugador» del menú (main.js).
 // Reglas: los cuatro magos tienen su carril y reciben LOS MISMOS Palabrones a la vez. Cada uno responde con sus 3 botones (los de su
 // columna). Acertar da puntos (más cuanto antes, +50 al primero en acertar cada palabra, +10 por racha). No hay corazones: fallar,
 // dejar que el Palabrón llegue o recibir un ataque QUITA PUNTOS, y el mago que se queda sin puntos muere (su cuerpo se queda atrás,
 // el camino sigue sin él). La partida dura 1, 2 o 3 minutos (gana quien más puntos tiene) o es infinita (gana el último en pie).
 // Competencia: cada acierto carga el ATAQUE (⚡). Con 3 cargas se lanza un obstáculo a un rival: niebla (no deja leer las palabras),
 // pegajoso (bloquea sus botones un momento), Palabrón extra en su carril o aceleración de sus Palabrones.
-import * as E from './escena.js?v=1.1.22';
-import { sfx, musica } from './audio.js?v=1.1.22';
-import { CATS, MUNDOS } from './datos.js?v=1.1.22';
-import { generadorMulti } from './juego.js?v=1.1.22';
-import { decir, callar } from './voz.js?v=1.1.22';
+import * as E from './escena.js?v=1.1.23';
+import { sfx, musica } from './audio.js?v=1.1.23';
+import { CATS, MUNDOS } from './datos.js?v=1.1.23';
+import { generadorMulti } from './juego.js?v=1.1.23';
+import { decir, callar } from './voz.js?v=1.1.23';
 
 const Z_LLEGADA = -2.2, Z_SALIDA = -32;
 const PUNTOS_INICIO = 300;   // los puntos hacen de «vida»: a 0 el mago muere
@@ -402,7 +402,7 @@ function montarEntrada() {
   });
 }
 
-// Punto de entrada: main.js lo llama una sola vez (si la dirección lleva ?multi).
+// Punto de entrada: main.js lo llama una sola vez, la primera vez que se pulsa el botón.
 export function montarMulti(ctx) {
   M.ctx = ctx;
   window.__multi = M; // para depurar y probar

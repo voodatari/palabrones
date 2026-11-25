@@ -2,7 +2,7 @@
 // Personajes, monstruos y decorado son modelos GLB de Quaternius (CC0), en web/modelos.
 // El estado del juego vive en juego.js; aquí solo se dibuja (las mallas son una «vista»).
 
-import * as THREE from './lib/three.module.js?v=1.1.22';
+import * as THREE from './lib/three.module.js?v=1.1.23';
 import { GLTFLoader } from './lib/addons/loaders/GLTFLoader.js';
 import { clone as clonarEsqueleto } from './lib/addons/utils/SkeletonUtils.js';
 import { mergeGeometries } from './lib/addons/utils/BufferGeometryUtils.js';
@@ -246,7 +246,7 @@ const MODELOS = new Map();
 const ALTURAS = new Map();
 export function cargar(nombre) {
   if (!MODELOS.has(nombre)) {
-    MODELOS.set(nombre, new Promise((ok, mal) => cargador.load(`modelos/${nombre}.glb?v=1.1.22`, ok, undefined, mal)).catch((e) => { console.warn('modelo', nombre, e); return null; }));
+    MODELOS.set(nombre, new Promise((ok, mal) => cargador.load(`modelos/${nombre}.glb?v=1.1.23`, ok, undefined, mal)).catch((e) => { console.warn('modelo', nombre, e); return null; }));
   }
   return MODELOS.get(nombre);
 }
@@ -520,7 +520,9 @@ function ajustarTamano() {
   const r = E.renderer, z = zoomPagina(), dpr = (window.devicePixelRatio || 1) * z;
   // Look retro: la imagen final se pinta a la resolución real de la pantalla (hasta x3). Sin él, el límite de
   // calidad va en puntos de pantalla, así que con la página alejada no se dibujan más píxeles de los necesarios.
-  r.setPixelRatio(RETRO.activo ? Math.min(dpr, 3) : E.pixelRatioBase * z);
+  // Multijugador: se dibuja a la MITAD de resolución por lado (1/4 de los píxeles) para que vaya fluido en ordenadores modestos.
+  const ms = E.multi ? MULTI_ESCALA : 1;
+  r.setPixelRatio(RETRO.activo ? Math.min(dpr, 3) : E.pixelRatioBase * z * ms);
   r.setSize(w, h, false);
   const pr = r.getPixelRatio(), comp = E.compositor || RETRO.comp;
   let escalaPx;
@@ -534,6 +536,7 @@ function ajustarTamano() {
       const k = Math.min(bw, bh) / 240;
       RETRO.kd = k >= 4.5 ? Math.round(k / 3) * 3 : Math.max(3, Math.round(k));
     } else RETRO.kd = Math.max(3, Math.round(bh / 1080) * 3); // ordenador: 3 píxeles (6 en pantallas muy grandes)
+    if (E.multi) RETRO.kd = Math.round(RETRO.kd / ms); // look retro: píxeles retro el doble de grandes (misma proporción de franjas RGB)
     RETRO.w = Math.max(2, Math.ceil(bw / RETRO.kd)); RETRO.h = Math.max(2, Math.ceil(bh / RETRO.kd));
     // MSAA a baja resolución; en el compositor de «Bonitos» solo si la tarjeta lo permite con texturas de coma flotante.
     const msaa = RETRO.sinMsaa ? 0 : comp === RETRO.comp || r.extensions.has('EXT_color_buffer_float') ? RETRO_MSAA : 0;
@@ -550,6 +553,7 @@ function ajustarTamano() {
     }
     escalaPx = h * 0.55 * pr;
   }
+  if (E.ao) E.ao.enabled = !E.multi; // sin oclusión ambiental en el multijugador (es lo más caro de «Bonitos»)
   if (P.puntos) P.puntos.material.uniforms.escalaPx.value = escalaPx;
   // Las partículas de ambiente (PointsMaterial) se miden con el tamaño del lienzo: se corrigen si se dibujan en otro objetivo.
   E.escalaAmbiente = escalaPx / (pr * h * 0.55);
@@ -1252,11 +1256,12 @@ export function heroeHerido(h = E.heroe) {
   emitir(h.grupo.position.clone().add(new THREE.Vector3(0, 1.2, 0)), 24, '#ff4d6d', { vel: 4, vida: 0.6, tam: 0.45 });
 }
 export function heroeSalta() { E.heroe.salto = 0.6; }
-// ---------- Modo multijugador (experimental, solo con ?multi): 4 magos a lo ancho de la pizarra ----------
+// ---------- Modo multijugador (4 en pizarra): 4 magos a lo ancho de la pizarra ----------
 // Cada jugador tiene su carril, su mago y sus Palabrones (los mismos para todos). La lógica está en multi.js.
 export const MULTI_COLORES = ['#ef4444', '#3b82f6', '#22c55e', '#eab308'];
 export const MULTI_X = [-9, -3, 3, 9];
 const Z_HEROE = 1.6; // donde está siempre Lumi (el cuerpo de un mago caído se aleja de ahí)
+const MULTI_ESCALA = 0.5; // resolución del multijugador respecto a la normal (por lado)
 const MULTI_MEDIO = 12; // semiancho (m) que cubren los 4 carriles a la altura de los magos
 E.multi = null; E.multiObjetivos = new Set();
 function ropaDe(hex) {
@@ -1304,6 +1309,7 @@ export function multiIniciar() {
   E.multiObjetivos = new Set();
   quitarTodos();
   ocultarDecorado(true);
+  ajustarTamano(); // resolución reducida
   vista('multi', true);
 }
 export function multiTerminar() {
@@ -1323,6 +1329,7 @@ export function multiTerminar() {
   colorVarita('#ffe066', h);
   fiesta(false);
   ocultarDecorado(false);
+  ajustarTamano(); // vuelve la resolución normal
 }
 export function multiHeroe(i) { return E.multi ? E.multi.heroes[i] : E.heroe; }
 // Objetivo (Palabrón al que apunta) de cada jugador: se marca con su anillo y su etiqueta destacada.

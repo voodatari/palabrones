@@ -531,7 +531,7 @@ html.vertical .final-titulo { font-size: 2.1rem; }
 @keyframes cae { from { transform: translateY(-4rem) rotate(0deg); } to { transform: translateY(calc(var(--alto, 100vh) + 4rem)) rotate(540deg); } }
 @media (prefers-reduced-motion: reduce) { .final-titulo, .final-trofeo, #final-vale, .final-premio { animation: none; } .final-titulo { color: #ffd23f; background: none; -webkit-text-fill-color: #ffd23f; } }
 
-/* ---------- Modo multijugador (experimental, solo con ?multi): 4 jugadores a lo ancho de la pizarra ---------- */
+/* ---------- Modo multijugador (4 en pizarra): 4 jugadores a lo ancho de la pizarra ---------- */
 #p-multi-config { align-items: center; justify-content: center; }
 .panel-mj { width: min(46rem, 100%); display: flex; flex-direction: column; gap: 0.7rem; }
 .mj-exp { font-size: 0.42em; vertical-align: middle; background: var(--oro); color: #4a2600; border-radius: 0.7em; padding: 0.15em 0.6em; letter-spacing: 0.06em; text-transform: uppercase; }
