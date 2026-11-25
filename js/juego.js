@@ -1,10 +1,10 @@
 // ¡Palabrones! · Lógica de partida: niveles normales, jefes, desafío infinito y entrenamiento.
 // El estado vive aquí (objetos planos); escena.js solo lo dibuja.
 
-import * as E from './escena.js?v=1.1.19';
-import { PALABRAS, FRASES, CATS, MUNDOS, explicarSuelta, explicarEnFrase } from './datos.js?v=1.1.19';
-import * as Pr from './progreso.js?v=1.1.19';
-import { sfx, musica, intensidad } from './audio.js?v=1.1.19';
+import * as E from './escena.js?v=1.1.20';
+import { PALABRAS, FRASES, CATS, MUNDOS, explicarSuelta, explicarEnFrase } from './datos.js?v=1.1.20';
+import * as Pr from './progreso.js?v=1.1.20';
+import { sfx, musica, intensidad } from './audio.js?v=1.1.20';
 
 const CARRILES = [-2.3, 0, 2.3];
 const Z_SALIDA = -27, Z_LLEGADA = -2.2;
@@ -57,7 +57,7 @@ function nivelesDe(st, cat) { return st['niveles' + cat] || st.niveles || [1, 2]
 
 function elegirCat(cats) {
   // Más peso a la clase que el alumno domina menos, sin repetir 3 veces seguidas.
-  const floja = Pr.claseMasFloja();
+  const floja = J.neutral ? null : Pr.claseMasFloja(); // en el modo multijugador no se favorece a nadie
   const pesos = cats.map((c) => (c === floja ? 1.6 : 1) * (J.ultimas.slice(-2).every((x) => x === c) ? 0.15 : 1));
   let r = Math.random() * pesos.reduce((a, b) => a + b, 0);
   for (let i = 0; i < cats.length; i++) { r -= pesos[i]; if (r <= 0) return cats[i]; }
@@ -116,6 +116,18 @@ function siguienteItem() {
   return it;
 }
 
+// Generador de palabras sueltas para el modo multijugador (experimental): no toca la partida normal.
+export function generadorMulti(niveles = [1, 2]) {
+  Object.assign(J, { usadas: new Set(), lemas: new Set(), ultimas: [], neutral: true });
+  const st = { tipo: 'sueltas', cats: ['S', 'A', 'V'], niveles };
+  return () => {
+    const it = nuevaSuelta(st);
+    J.usadas.add(it.clave); if (it.w) { J.lemas.add(it.w.lema); recordar(it.w.lema); }
+    J.ultimas.push(it.cat);
+    return it;
+  };
+}
+
 // ---------- empezar ----------
 export function empezar(cfg, interfaz) {
   ui = interfaz;
@@ -132,7 +144,7 @@ export function empezar(cfg, interfaz) {
     porCat: { S: { ok: 0, total: 0 }, A: { ok: 0, total: 0 }, V: { ok: 0, total: 0 } },
     superCarga: 0, congeladoHasta: 0, reloj: 0, segundos: 0, siguienteSalida: 1.2, carril: 1, cuenta: 3.2,
     objetivoId: null, objetivoDesde: 0, jefe: null, monedasNivel: 0,
-    oleada: 1, perdidas: 0, frenesiHasta: 0, latido: 0, peligro: 0,
+    oleada: 1, perdidas: 0, frenesiHasta: 0, latido: 0, peligro: 0, neutral: false,
   });
   E.quitarTodos(); E.quitarJefe();
   const mundo = MUNDOS[J.mundo];

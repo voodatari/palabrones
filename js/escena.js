@@ -2,7 +2,7 @@
 // Personajes, monstruos y decorado son modelos GLB de Quaternius (CC0), en web/modelos.
 // El estado del juego vive en juego.js; aquí solo se dibuja (las mallas son una «vista»).
 
-import * as THREE from './lib/three.module.js?v=1.1.19';
+import * as THREE from './lib/three.module.js?v=1.1.20';
 import { GLTFLoader } from './lib/addons/loaders/GLTFLoader.js';
 import { clone as clonarEsqueleto } from './lib/addons/utils/SkeletonUtils.js';
 import { mergeGeometries } from './lib/addons/utils/BufferGeometryUtils.js';
@@ -246,7 +246,7 @@ const MODELOS = new Map();
 const ALTURAS = new Map();
 export function cargar(nombre) {
   if (!MODELOS.has(nombre)) {
-    MODELOS.set(nombre, new Promise((ok, mal) => cargador.load(`modelos/${nombre}.glb?v=1.1.19`, ok, undefined, mal)).catch((e) => { console.warn('modelo', nombre, e); return null; }));
+    MODELOS.set(nombre, new Promise((ok, mal) => cargador.load(`modelos/${nombre}.glb?v=1.1.20`, ok, undefined, mal)).catch((e) => { console.warn('modelo', nombre, e); return null; }));
   }
   return MODELOS.get(nombre);
 }
@@ -565,6 +565,12 @@ export function vista(v, inmediato = false) {
   if (v === 'menu') { E.camPosObj.set(vert ? 0.6 : 1.4, vert ? 2.3 : 2.2, vert ? 8.4 : 7.8); E.camMiraObj.set(vert ? 0.2 : 2.5, vert ? -0.2 : 1.3, 1.4); }
   else if (v === 'titulo') { E.camPosObj.set(0.4, 2.0, vert ? 8.6 : 7.4); E.camMiraObj.set(0, vert ? -0.4 : -0.1, 1.4); }
   else if (v === 'resultado') { E.camPosObj.set(vert ? 0 : 1.4, 2.2, vert ? 10.5 : 7.8); E.camMiraObj.set(vert ? 0 : 2.5, vert ? -1.6 : 1.3, 1.4); } // Lumi entera arriba (móvil) o a la izquierda, con las ventanas debajo o a la derecha
+  else if (v === 'multi') {
+    // Cuatro carriles a lo ancho: la cámara se aleja justo lo necesario para que los 4 carriles ocupen el ancho de la pantalla
+    // (cada uno, un cuarto), y mira un poco por encima para que los magos queden sobre los botones de cada jugador.
+    const zh = E.heroe.grupo.position.z, tanV = Math.tan((E.camara.fov * Math.PI / 180) / 2), d = (MULTI_MEDIO / (tanV * E.camara.aspect));
+    E.camPosObj.set(0, 6.2 + d * 0.12, zh + d); E.camMiraObj.set(0, 1.7, zh - 7);
+  }
   else if (v === 'final') { E.camPosObj.set(vert ? 0 : 1.2, vert ? 1.8 : 1.4, vert ? 11.5 : 8.2); E.camMiraObj.set(vert ? 0 : 2.4, vert ? -1.4 : 3.2, 1.4); } // fiesta: Lumi abajo y el cielo con los fuegos artificiales
   else if (v === 'jefe') {
     if (jefePanoramico()) colocarVistaJefe();
@@ -642,12 +648,13 @@ function distSeg(px, pz, ax, az, bx, bz) {
 }
 function ocultarDecorado(activo) {
   if (!E.deslizables) return;
+  if (E.multi) activo = true;
   const c = E.camPosObj, zH = E.heroe.grupo.position.z, zB = E.jefe ? E.jefe.g.position.z : -17;
   for (const o of E.deslizables) {
     let h = false;
-    if (activo && !(o.userData.modelo || '').startsWith('piedra')) { // el bordillo es bajo: se queda
+    if (activo && (E.multi || !(o.userData.modelo || '').startsWith('piedra'))) { // el bordillo es bajo: se queda (salvo en multijugador)
       const x = o.position.x, z = o.position.z;
-      h = distSeg(x, z, c.x, c.z, 0, zH) < 4.5 || distSeg(x, z, c.x, c.z, 0, zB) < 7;
+      h = E.multi ? Math.abs(x) < 13.5 : distSeg(x, z, c.x, c.z, 0, zH) < 4.5 || distSeg(x, z, c.x, c.z, 0, zB) < 7;
     }
     o.userData.oculto = h; o.visible = !h;
   }
@@ -888,7 +895,7 @@ export function tema(nombre) {
   const texC = texturaSuelo(T.camino[0], T.camino[1], T.tipoCamino, 7);
   texC.repeat.set(1.2, 24 * LARGO_SUELO / 120);
   const camino = new THREE.Mesh(new THREE.PlaneGeometry(7.4, LARGO_SUELO), new THREE.MeshStandardMaterial({ map: texC, roughness: 0.9 }));
-  camino.rotation.x = -Math.PI / 2; camino.position.set(0, 0.02, Z_CENTRO_SUELO); camino.receiveShadow = true; camino.userData.propio = true;
+  E.caminoMesh = camino; camino.rotation.x = -Math.PI / 2; camino.position.set(0, 0.02, Z_CENTRO_SUELO); camino.receiveShadow = true; camino.userData.propio = true;
   g.add(marcar(camino));
   E.suelos = [{ t: texS, largo: 120 / 22 }, { t: texC, largo: 120 / 24 }];
   // Bordillos de piedra a los dos lados (en fila, se desplazan).
@@ -1001,6 +1008,43 @@ const extrasTema = {
   },
 };
 
+// Animación de un héroe en cada fotograma (giro, saltos, gestos, carrera o descanso, pelo recortado, aura y mascota).
+function animarHeroe(h, dt, real, t) {
+h.grupo.rotation.y += (h.rotObj - h.grupo.rotation.y) * (1 - Math.exp(-real * 6));
+  if (h.salto > 0) h.salto = Math.max(0, h.salto - real);
+  h.cuerpo.position.y = h.salto > 0 ? Math.abs(Math.sin(h.salto * Math.PI * 2.5)) * 0.6 : 0;
+  if (h.lanzar > 0) h.lanzar = Math.max(0, h.lanzar - real);
+  if (h.herido > 0) h.herido = Math.max(0, h.herido - real);
+  if (h.triste > 0) h.triste = Math.max(0, h.triste - real);
+  if (h.mixer) {
+    // Fuera de los gestos de una vez (hechizo, golpe, victoria), corre si el mundo avanza o descansa.
+    const enGesto = h.actual && h.actual.loop === THREE.LoopOnce && h.actual.isRunning();
+    if (!enGesto && h.triste <= 0 && !h.caido) {
+      const base = E.velAvance > 0.4 ? h.acc.correr : h.acc.quieto;
+      if (h.actual !== base) h.actual = reproducir(base, h.actual, 0.25);
+    }
+    h.mixer.timeScale = E.velAvance > 0.4 ? Math.min(1.7, Math.max(0.6, E.velAvance / 3.2)) : 1;
+    h.mixer.update(dt);
+    if (h.pelo && h.pelo.clippingPlanes) {
+      h.sombreroSitio.updateWorldMatrix(true, false);
+      // Se ve el pelo que cae por debajo del ala (plano A) y todo el de la mitad delantera (plano B, el flequillo);
+      // solo se recorta el que sobresale por encima del ala en la parte de atrás, donde atravesaba el cono.
+      const q = h.sombreroSitio.getWorldQuaternion(new THREE.Quaternion());
+      const arriba = new THREE.Vector3(0, 1, 0).applyQuaternion(q), delante = new THREE.Vector3(0, 0, 1).applyQuaternion(q);
+      const o = h.sombreroSitio.getWorldPosition(new THREE.Vector3());
+      h.planoPelo.setFromNormalAndCoplanarPoint(arriba.clone().negate(), o.clone().addScaledVector(arriba, ALTURA_PELO));
+      h.planoPelo2.setFromNormalAndCoplanarPoint(delante, o.addScaledVector(delante, INCLINA_PELO));
+    }
+  }
+  h.aura.rotation.z += real * 0.8; h.aura.material.opacity = 0.35 + Math.sin(t * 3) * 0.15 + (E.frenesi ? 0.3 : 0);
+  h.halo.scale.multiplyScalar(1); h.orbe.rotation.y += real * 2;
+  if (h.mascota) {
+    h.mascota.position.set(Math.sin(t * 0.9) * 0.3 - 0.85, 2.1 + Math.sin(t * 2.6) * 0.15, 0.3 + Math.cos(t * 0.9) * 0.2);
+    h.mascota.rotation.y = Math.sin(t * 0.9) * 0.4;
+    h.mascota.traverse((o) => { if (o.userData.ala) o.rotation.z = -o.userData.ala * (0.8 + Math.sin(t * 14) * 0.5); });
+  }
+}
+
 // ---------- Lumi (modelo animado) ----------
 function crearHeroe() {
   const grupo = new THREE.Group();
@@ -1020,8 +1064,7 @@ function crearHeroe() {
 }
 
 let INCLINA_PELO = 0.1, ALTURA_PELO = -0.02; // INCLINA_PELO: hasta dónde (hacia delante) se recorta el pelo
-function montarHeroe() {
-  const h = E.heroe;
+function montarHeroe(h = E.heroe) {
   if (h.modelo) return;
   const a = copiaAnimada('mago', 2.2);
   if (!a) return;
@@ -1029,7 +1072,7 @@ function montarHeroe() {
   h.acc = { quieto: a.buscar('Idle'), correr: a.buscar('Run'), hechizo: a.buscar('Dagger_Attack', 'Punch'), golpe: a.buscar('RecieveHit'), victoria: a.buscar('Punch', 'Roll'), triste: a.buscar('Death') };
   h.cuerpo.add(a.o);
   // Túnica de aprendiz de mago (los colores del modelo son de aventurero).
-  const ROPA = { Shirt: '#6d4bd1', Pants: '#2b3a8c', Detail: '#ffd23f', UnderShirt: '#f4e7ff', Boots: '#5b2a86' };
+  const ROPA = h.ropa || ROPA_BASE;
   a.o.traverse((c) => {
     if (c.isMesh && c.material && ROPA[c.material.name]) { if (!c.material.userData.teñido) { c.material = c.material.clone(); c.material.userData.teñido = true; } c.material.color.set(ROPA[c.material.name]); }
     if (c.isMesh && c.material && c.material.name === 'Hair') { c.material = c.material.clone(); h.pelo = c.material; }
@@ -1050,12 +1093,17 @@ function montarHeroe() {
     h.vara.add(h.orbe, h.halo); h.mano.add(h.vara); h.punta = h.vara;
   } else { h.orbe.position.set(0.5, 1.6, 0.2); h.cuerpo.add(h.orbe, h.halo); }
   h.actual = reproducir(h.acc.quieto, null);
-  ponerSombrero();
+  ponerSombrero(h);
+}
+const ROPA_BASE = { Shirt: '#6d4bd1', Pants: '#2b3a8c', Detail: '#ffd23f', UnderShirt: '#f4e7ff', Boots: '#5b2a86' };
+// Cambia los colores de la túnica de un héroe ya montado.
+function teñirHeroe(h, ropa) {
+  if (!h.modelo) return;
+  h.modelo.traverse((c) => { if (c.isMesh && c.material && ropa[c.material.name]) c.material.color.set(ropa[c.material.name]); });
 }
 
 // Sombrero de mago de serie (con el color del aura) o el que se haya comprado.
-function ponerSombrero() {
-  const h = E.heroe;
+function ponerSombrero(h = E.heroe) {
   if (!h.cabeza || !h.escCab) return;
   const id = h.aspecto && h.aspecto.sombrero && SOMBREROS[h.aspecto.sombrero] ? h.aspecto.sombrero : SOMBRERO_NINGUNO;
   const mago = id === SOMBRERO_NINGUNO, e = h.escCab;
@@ -1079,7 +1127,7 @@ export function aspectoHeroe(a, colorHex) {
   if (a.mascota && MASCOTAS[a.mascota]) { h.mascota = MASCOTAS[a.mascota](); h.mascotaSitio.add(h.mascota); }
 }
 export function mostrarHeroe() { const h = E.heroe; if (h) { h.aura.visible = true; h.sombra.visible = true; } }
-export function colorVarita(hex) { E.heroe.orbe.material.color.set(hex); E.heroe.halo.material.color.set(hex); }
+export function colorVarita(hex, h = E.heroe) { h.orbe.material.color.set(hex); h.halo.material.color.set(hex); }
 
 // ---------- Palabrones ----------
 function crearMonstruoModelo(semilla, variante) {
@@ -1176,8 +1224,7 @@ function moneda(p) {
 }
 
 const geoProyectil = new THREE.IcosahedronGeometry(0.2, 1);
-export function disparo(color, destino, alLlegar) {
-  const h = E.heroe;
+export function disparo(color, destino, alLlegar, h = E.heroe, dur = 0.34) {
   h.lanzar = 0.45;
   if (h.acc) h.actual = reproducir(h.acc.hechizo, h.actual, 0.06, true);
   const desde = new THREE.Vector3(); h.orbe.getWorldPosition(desde);
@@ -1186,27 +1233,117 @@ export function disparo(color, destino, alLlegar) {
   const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: texBrillo, color, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); halo.scale.setScalar(1.4); m.add(halo);
   m.position.copy(desde); E.escena.add(m);
   emitir(desde, 12, color, { vel: 3, vida: 0.4, tam: 0.4, grav: 0 });
-  E.disparos.push({ m, desde, destino, t: 0, dur: 0.34, color, alLlegar });
+  E.disparos.push({ m, desde, destino, t: 0, dur, color, alLlegar });
 }
 function destinoPos(destino) {
+  if (destino && destino.grupo) return destino.grupo.position.clone().add(new THREE.Vector3(0, 1.2, 0)); // un héroe (ataques entre jugadores)
   if (destino === 'jefe' && E.jefe) return E.jefe.g.position.clone().add(new THREE.Vector3(0, E.jefe.alto * 0.5, 2.2));
   if (destino === 'heroe') return E.heroe.grupo.position.clone().add(new THREE.Vector3(0, 1.2, 0));
   const m = E.monstruos.get(destino);
   if (m) return m.g.position.clone().add(new THREE.Vector3(0, m.alto * 0.55, 0.3));
   return null;
 }
-export function heroeHerido() {
-  const h = E.heroe; if (h.caido) return;
+export function heroeHerido(h = E.heroe) {
+  if (h.caido) return;
   h.herido = 0.5; temblor(0.55);
   if (h.acc) h.actual = reproducir(h.acc.golpe, h.actual, 0.06, true);
   emitir(h.grupo.position.clone().add(new THREE.Vector3(0, 1.2, 0)), 24, '#ff4d6d', { vel: 4, vida: 0.6, tam: 0.45 });
 }
 export function heroeSalta() { E.heroe.salto = 0.6; }
+// ---------- Modo multijugador (experimental, solo con ?multi): 4 magos a lo ancho de la pizarra ----------
+// Cada jugador tiene su carril, su mago y sus Palabrones (los mismos para todos). La lógica está en multi.js.
+export const MULTI_COLORES = ['#ef4444', '#3b82f6', '#22c55e', '#eab308'];
+export const MULTI_X = [-9, -3, 3, 9];
+const MULTI_MEDIO = 12; // semiancho (m) que cubren los 4 carriles a la altura de los magos
+E.multi = null; E.multiObjetivos = new Set();
+function ropaDe(hex) {
+  const c = new THREE.Color(hex), osc = c.clone().multiplyScalar(0.6), claro = c.clone().lerp(new THREE.Color('#ffffff'), 0.85);
+  return { Shirt: '#' + c.getHexString(), Pants: '#' + osc.getHexString(), Detail: '#ffd23f', UnderShirt: '#' + claro.getHexString(), Boots: '#' + osc.getHexString() };
+}
+export function multiIniciar() {
+  if (E.multi) multiTerminar();
+  const heroes = [E.heroe];
+  const zh = E.heroe.grupo.position.z;
+  for (let i = 1; i < 4; i++) {
+    const h = crearHeroe();
+    h.colorAura = MULTI_COLORES[i]; h.ropa = ropaDe(MULTI_COLORES[i]);
+    montarHeroe(h);
+    h.aura.visible = true; h.sombra.visible = true;
+    h.aura.material.color.set(MULTI_COLORES[i]);
+    E.escena.add(h.grupo); heroes.push(h);
+  }
+  // El héroe principal hace de jugador 1: se tiñe de rojo; al salir se restaura su aspecto.
+  E.heroe.colorAura = MULTI_COLORES[0]; ponerSombrero(E.heroe); teñirHeroe(E.heroe, ropaDe(MULTI_COLORES[0]));
+  E.heroe.aura.material.color.set(MULTI_COLORES[0]);
+  heroes.forEach((h, i) => { h.grupo.position.set(MULTI_X[i], 0, zh); h.caido = false; h.triste = 0; colorVarita(MULTI_COLORES[i], h); });
+  // Carriles: una tira de camino por jugador, con el color del jugador en los bordes; la textura se desliza con el mundo.
+  const tiras = [], texs = [];
+  if (E.caminoMesh) E.caminoMesh.visible = false;
+  MULTI_X.forEach((x, i) => {
+    const base = E.suelos && E.suelos[1] ? E.suelos[1].t : null;
+    let mat;
+    if (base) {
+      const tx = base.clone(); tx.needsUpdate = true; tx.repeat.set(0.85, 24 * 100 / 120); texs.push(tx); E.suelos.push({ t: tx, largo: 5 });
+      mat = new THREE.MeshStandardMaterial({ map: tx, roughness: 0.9, color: new THREE.Color('#ffffff').lerp(new THREE.Color(MULTI_COLORES[i]), 0.3) });
+    } else mat = new THREE.MeshStandardMaterial({ color: MULTI_COLORES[i], roughness: 0.9 });
+    const tira = new THREE.Mesh(new THREE.PlaneGeometry(5.4, 100), mat);
+    tira.rotation.x = -Math.PI / 2; tira.position.set(x, 0.025, -38); tira.receiveShadow = true; tira.userData.sinAO = true;
+    const borde = new THREE.MeshBasicMaterial({ color: MULTI_COLORES[i] });
+    for (const lado of [-1, 1]) { const b = new THREE.Mesh(new THREE.PlaneGeometry(0.28, 100), borde); b.position.set(lado * 2.7, 0, 0.004); tira.add(b); }
+    E.escena.add(tira); tiras.push(tira);
+  });
+  // Anillo de objetivo de cada jugador.
+  const anillos = MULTI_COLORES.map((c) => {
+    const m = new THREE.Mesh(new THREE.RingGeometry(0.85, 1.12, 40), new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.95, depthWrite: false }));
+    m.rotation.x = -Math.PI / 2; m.visible = false; m.renderOrder = 2; E.escena.add(m); return m;
+  });
+  E.multi = { heroes, tiras, texs, anillos, objetivos: [null, null, null, null] };
+  E.multiObjetivos = new Set();
+  quitarTodos();
+  ocultarDecorado(true);
+  vista('multi', true);
+}
+export function multiTerminar() {
+  const M = E.multi; if (!M) return;
+  E.multi = null; E.multiObjetivos = new Set();
+  M.heroes.slice(1).forEach((h) => { E.escena.remove(h.grupo); if (h.mixer) h.mixer.stopAllAction(); });
+  for (const t of M.tiras) { E.escena.remove(t); t.material.dispose(); t.geometry.dispose(); t.children.forEach((c) => c.geometry.dispose()); }
+  for (const a of M.anillos) { E.escena.remove(a); a.geometry.dispose(); a.material.dispose(); }
+  if (E.suelos) E.suelos = E.suelos.filter((x) => !M.texs.includes(x.t));
+  for (const t of M.texs) t.dispose();
+  if (E.caminoMesh) E.caminoMesh.visible = true;
+  // El héroe principal vuelve a ser Lumi.
+  const h = E.heroe;
+  h.grupo.position.set(0, 0, M.heroes[0].grupo.position.z); h.caido = false; h.levantando = false; h.triste = 0; h.salto = 0;
+  if (h.acc) h.actual = reproducir(h.acc.quieto, h.actual, 0.1);
+  teñirHeroe(h, ROPA_BASE); h.aspecto = null; // el aspecto (sombrero y aura) se vuelve a aplicar al entrar en el menú
+  colorVarita('#ffe066', h);
+  fiesta(false);
+  ocultarDecorado(false);
+}
+export function multiHeroe(i) { return E.multi ? E.multi.heroes[i] : E.heroe; }
+// Objetivo (Palabrón al que apunta) de cada jugador: se marca con su anillo y su etiqueta destacada.
+export function multiObjetivo(i, id) {
+  const M = E.multi; if (!M) return;
+  M.objetivos[i] = id;
+  E.multiObjetivos = new Set(M.objetivos.filter((x) => x != null));
+}
+export function quitarMonstruoId(id) { const m = E.monstruos.get(id); if (m) quitarMonstruo(m); }
+// Mueve los anillos de objetivo (cada fotograma).
+function multiAnillos(t) {
+  const M = E.multi; if (!M) return;
+  M.anillos.forEach((a, i) => {
+    const m = M.objetivos[i] != null ? E.monstruos.get(M.objetivos[i]) : null;
+    a.visible = !!(m && m.estado === 'vivo');
+    if (a.visible) { a.position.set(m.g.position.x, 0.06, m.g.position.z); a.scale.setScalar((1 + Math.sin(t * 6 + i) * 0.08) * m.alto / 1.75); }
+  });
+}
+
 // Fiesta final (al vencer al último jefe): Lumi salta sin parar y estallan fuegos artificiales en el cielo.
 const COLORES_FUEGO = ['#ff4d6d', '#ffd23f', '#4dabf7', '#69db7c', '#da77f2', '#ff922b', '#ffffff', '#38d9a9'];
 E.fiesta = null; E.alFuego = null;
-export function fiesta(si) {
-  E.fiesta = si ? { t: 0, fuego: 0.2, salto: 0 } : null;
+export function fiesta(si, h = null) {
+  E.fiesta = si ? { t: 0, fuego: 0.2, salto: 0, h } : null;
 }
 function lanzarFuego() {
   const c = COLORES_FUEGO, a = c[Math.floor(Math.random() * c.length)], b = c[Math.floor(Math.random() * c.length)];
@@ -1216,10 +1353,10 @@ function lanzarFuego() {
   emitir(pos, 16, '#ffffff', { vel: 3, vida: 1.0, tam: 0.55, grav: 1, arriba: 2, minArriba: -1, disp: 0.2 });
   if (E.alFuego) E.alFuego();
 }
-export function celebrar() { const h = E.heroe; h.salto = 2.4; E.confeti = 2.2; if (h.acc) h.actual = reproducir(h.acc.victoria, h.actual, 0.15, true); }
+export function celebrar(h = E.heroe) { h.salto = 2.4; E.confeti = 2.2; if (h.acc) h.actual = reproducir(h.acc.victoria, h.actual, 0.15, true); }
 // Sin vidas, Lumi cae UNA vez y se queda en el suelo (aunque se cambie de pantalla) hasta que se la levanta con levantar().
-export function entristecer() {
-  const h = E.heroe; if (h.caido) return;
+export function entristecer(h = E.heroe) {
+  if (h.caido) return;
   h.caido = true; h.triste = 2.5;
   if (h.acc) h.actual = reproducir(h.acc.triste, h.actual, 0.2, true);
 }
@@ -1318,7 +1455,7 @@ function actualizar(dt, real) {
   E.camara.rotation.z += s * 0.03 * Math.sin(t * 37);
 
   // El mundo avanza hacia Lumi (solo durante la partida).
-  E.velAvance += ((E.vista === 'juego' ? E.avance : 0) - E.velAvance) * Math.min(1, real * 3);
+  E.velAvance += ((E.vista === 'juego' || E.vista === 'multi' ? E.avance : 0) - E.velAvance) * Math.min(1, real * 3);
   const dz = E.velAvance * dt;
   if (dz > 0.00001) {
     for (const sl of E.suelos) sl.t.offset.y += dz / sl.largo;
@@ -1334,42 +1471,11 @@ function actualizar(dt, real) {
     actualizarLotes();
   }
 
-  // Lumi.
+  // Lumi (y, en el modo multijugador, los otros tres magos).
   const h = E.heroe;
   h.rotObj = E.vista === 'menu' || E.vista === 'titulo' || E.vista === 'resultado' || E.vista === 'final' ? 0 : Math.PI;
-  h.grupo.rotation.y += (h.rotObj - h.grupo.rotation.y) * (1 - Math.exp(-real * 6));
-  if (h.salto > 0) h.salto = Math.max(0, h.salto - real);
-  h.cuerpo.position.y = h.salto > 0 ? Math.abs(Math.sin(h.salto * Math.PI * 2.5)) * 0.6 : 0;
-  if (h.lanzar > 0) h.lanzar = Math.max(0, h.lanzar - real);
-  if (h.herido > 0) h.herido = Math.max(0, h.herido - real);
-  if (h.triste > 0) h.triste = Math.max(0, h.triste - real);
-  if (h.mixer) {
-    // Fuera de los gestos de una vez (hechizo, golpe, victoria), corre si el mundo avanza o descansa.
-    const enGesto = h.actual && h.actual.loop === THREE.LoopOnce && h.actual.isRunning();
-    if (!enGesto && h.triste <= 0 && !h.caido) {
-      const base = E.velAvance > 0.4 ? h.acc.correr : h.acc.quieto;
-      if (h.actual !== base) h.actual = reproducir(base, h.actual, 0.25);
-    }
-    h.mixer.timeScale = E.velAvance > 0.4 ? Math.min(1.7, Math.max(0.6, E.velAvance / 3.2)) : 1;
-    h.mixer.update(dt);
-    if (h.pelo && h.pelo.clippingPlanes) {
-      h.sombreroSitio.updateWorldMatrix(true, false);
-      // Se ve el pelo que cae por debajo del ala (plano A) y todo el de la mitad delantera (plano B, el flequillo);
-      // solo se recorta el que sobresale por encima del ala en la parte de atrás, donde atravesaba el cono.
-      const q = h.sombreroSitio.getWorldQuaternion(new THREE.Quaternion());
-      const arriba = new THREE.Vector3(0, 1, 0).applyQuaternion(q), delante = new THREE.Vector3(0, 0, 1).applyQuaternion(q);
-      const o = h.sombreroSitio.getWorldPosition(new THREE.Vector3());
-      h.planoPelo.setFromNormalAndCoplanarPoint(arriba.clone().negate(), o.clone().addScaledVector(arriba, ALTURA_PELO));
-      h.planoPelo2.setFromNormalAndCoplanarPoint(delante, o.addScaledVector(delante, INCLINA_PELO));
-    }
-  }
-  h.aura.rotation.z += real * 0.8; h.aura.material.opacity = 0.35 + Math.sin(t * 3) * 0.15 + (E.frenesi ? 0.3 : 0);
-  h.halo.scale.multiplyScalar(1); h.orbe.rotation.y += real * 2;
-  if (h.mascota) {
-    h.mascota.position.set(Math.sin(t * 0.9) * 0.3 - 0.85, 2.1 + Math.sin(t * 2.6) * 0.15, 0.3 + Math.cos(t * 0.9) * 0.2);
-    h.mascota.rotation.y = Math.sin(t * 0.9) * 0.4;
-    h.mascota.traverse((o) => { if (o.userData.ala) o.rotation.z = -o.userData.ala * (0.8 + Math.sin(t * 14) * 0.5); });
-  }
+  animarHeroe(h, dt, real, t);
+  if (E.multi) for (const x of E.multi.heroes) if (x !== h) { x.rotObj = Math.PI; animarHeroe(x, dt, real, t); }
 
   // Palabrones.
   for (const m of [...E.monstruos.values()]) {
@@ -1398,9 +1504,10 @@ function actualizar(dt, real) {
       if (d > 0.65) { quitarMonstruo(m); continue; }
     }
     m.g.scale.setScalar(Math.max(0.001, esc));
-    m.g.rotation.y = Math.atan2(h.grupo.position.x - m.g.position.x, h.grupo.position.z - m.g.position.z) * 0.6;
+    m.g.rotation.y = Math.atan2((m.hx ?? h.grupo.position.x) - m.g.position.x, h.grupo.position.z - m.g.position.z) * 0.6;
   }
   const obj = E.objetivoId != null ? E.monstruos.get(E.objetivoId) : null;
+  multiAnillos(t);
   E.marcaAnillo.visible = !!(obj && obj.estado === 'vivo');
   if (E.marcaAnillo.visible) {
     E.marcaAnillo.position.set(obj.g.position.x, 0.06, obj.g.position.z);
@@ -1465,7 +1572,7 @@ function actualizar(dt, real) {
   if (E.fiesta) {
     E.fiesta.t += real; E.fiesta.fuego -= real; E.fiesta.salto -= real;
     if (E.fiesta.fuego <= 0) { lanzarFuego(); E.fiesta.fuego = 0.35 + Math.random() * 0.6; if (Math.random() < 0.25) setTimeout(lanzarFuego, 160); }
-    if (E.fiesta.salto <= 0) { celebrar(); E.fiesta.salto = 2.5; } // salta y lanza confeti sin parar
+    if (E.fiesta.salto <= 0) { celebrar(E.fiesta.h || E.heroe); E.fiesta.salto = 2.5; } // salta y lanza confeti sin parar
   }
   if (E.confeti > 0) {
     E.confeti -= real;

@@ -1,5 +1,12 @@
 # Cambios de ¡Palabrones!
 
+## v1.1.20 · 2026-11-25 · Modo multijugador experimental (4 en la pizarra)
+
+- Nuevo modo **multijugador de 4 jugadores para pizarra digital**, experimental y oculto: solo aparece si la dirección lleva `?multi` (por ejemplo `https://voodatari.github.io/palabrones/?multi`). Sin esa variable no existe ni se carga.
+- Los cuatro magos (rojo, azul, verde y amarillo) se colocan a lo ancho de la pantalla, cada uno con su carril y sus 3 botones de respuesta (Sustantivo, Adjetivo, Verbo). Todos reciben las mismas palabras a la vez y gana quien más puntos consiga: se puntúa más cuanto antes se acierta, +50 al primero en acertar cada palabra y +10 por racha. Fallar o dejar que el Palabrón llegue quita un corazón; sin corazones, eliminado; el último en pie recibe una bonificación.
+- **Competencia:** cada acierto carga el ataque ⚡. Con 3 cargas se lanza un obstáculo a un rival (se elige tocando su avatar; si no, va al que va ganando): niebla (no deja leer las palabras), pegajoso (bloquea sus botones un momento), Palabrón extra en su carril o acelerón de sus Palabrones.
+- Se configura el nombre de cada jugador, el mundo, el número de palabras (10, 15 o 20) y la velocidad. Al terminar hay podio, fuegos artificiales para el ganador y botón de revancha. Solo se puede jugar en pantallas grandes en horizontal (pizarras); en el móvil o la tablet pequeña avisa de que no está disponible. Para probar sin pantalla táctil hay teclas (A S D · F G H · J K L · ← ↓ →; ataque W, T, I, ↑).
+
 ## v1.1.19 · 2026-11-24 · ¡Gran final del juego!
 
 - Al vencer al último jefe (el Dragón Revoltijo) hay una fiesta antes de los resultados: fuegos artificiales de colores en el cielo, Lumi saltando
