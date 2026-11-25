@@ -2,7 +2,7 @@
 // Personajes, monstruos y decorado son modelos GLB de Quaternius (CC0), en web/modelos.
 // El estado del juego vive en juego.js; aquí solo se dibuja (las mallas son una «vista»).
 
-import * as THREE from './lib/three.module.js?v=1.1.20';
+import * as THREE from './lib/three.module.js?v=1.1.21';
 import { GLTFLoader } from './lib/addons/loaders/GLTFLoader.js';
 import { clone as clonarEsqueleto } from './lib/addons/utils/SkeletonUtils.js';
 import { mergeGeometries } from './lib/addons/utils/BufferGeometryUtils.js';
@@ -246,7 +246,7 @@ const MODELOS = new Map();
 const ALTURAS = new Map();
 export function cargar(nombre) {
   if (!MODELOS.has(nombre)) {
-    MODELOS.set(nombre, new Promise((ok, mal) => cargador.load(`modelos/${nombre}.glb?v=1.1.20`, ok, undefined, mal)).catch((e) => { console.warn('modelo', nombre, e); return null; }));
+    MODELOS.set(nombre, new Promise((ok, mal) => cargador.load(`modelos/${nombre}.glb?v=1.1.21`, ok, undefined, mal)).catch((e) => { console.warn('modelo', nombre, e); return null; }));
   }
   return MODELOS.get(nombre);
 }
@@ -568,7 +568,7 @@ export function vista(v, inmediato = false) {
   else if (v === 'multi') {
     // Cuatro carriles a lo ancho: la cámara se aleja justo lo necesario para que los 4 carriles ocupen el ancho de la pantalla
     // (cada uno, un cuarto), y mira un poco por encima para que los magos queden sobre los botones de cada jugador.
-    const zh = E.heroe.grupo.position.z, tanV = Math.tan((E.camara.fov * Math.PI / 180) / 2), d = (MULTI_MEDIO / (tanV * E.camara.aspect));
+    const zh = Z_HEROE, tanV = Math.tan((E.camara.fov * Math.PI / 180) / 2), d = (MULTI_MEDIO / (tanV * E.camara.aspect));
     E.camPosObj.set(0, 6.2 + d * 0.12, zh + d); E.camMiraObj.set(0, 1.7, zh - 7);
   }
   else if (v === 'final') { E.camPosObj.set(vert ? 0 : 1.2, vert ? 1.8 : 1.4, vert ? 11.5 : 8.2); E.camMiraObj.set(vert ? 0 : 2.4, vert ? -1.4 : 3.2, 1.4); } // fiesta: Lumi abajo y el cielo con los fuegos artificiales
@@ -1010,6 +1010,8 @@ const extrasTema = {
 
 // Animación de un héroe en cada fotograma (giro, saltos, gestos, carrera o descanso, pelo recortado, aura y mascota).
 function animarHeroe(h, dt, real, t) {
+  // En el multijugador, el cuerpo de un mago caído se queda atrás: se va hacia la cámara con el camino hasta salir de la pantalla.
+  if (E.multi && h.caido && h.grupo.visible) { h.grupo.position.z += Math.max(E.velAvance, 1.2) * dt; if (h.grupo.position.z > E.camara.position.z - 1) h.grupo.visible = false; }
 h.grupo.rotation.y += (h.rotObj - h.grupo.rotation.y) * (1 - Math.exp(-real * 6));
   if (h.salto > 0) h.salto = Math.max(0, h.salto - real);
   h.cuerpo.position.y = h.salto > 0 ? Math.abs(Math.sin(h.salto * Math.PI * 2.5)) * 0.6 : 0;
@@ -1254,6 +1256,7 @@ export function heroeSalta() { E.heroe.salto = 0.6; }
 // Cada jugador tiene su carril, su mago y sus Palabrones (los mismos para todos). La lógica está en multi.js.
 export const MULTI_COLORES = ['#ef4444', '#3b82f6', '#22c55e', '#eab308'];
 export const MULTI_X = [-9, -3, 3, 9];
+const Z_HEROE = 1.6; // donde está siempre Lumi (el cuerpo de un mago caído se aleja de ahí)
 const MULTI_MEDIO = 12; // semiancho (m) que cubren los 4 carriles a la altura de los magos
 E.multi = null; E.multiObjetivos = new Set();
 function ropaDe(hex) {
@@ -1263,7 +1266,7 @@ function ropaDe(hex) {
 export function multiIniciar() {
   if (E.multi) multiTerminar();
   const heroes = [E.heroe];
-  const zh = E.heroe.grupo.position.z;
+  const zh = Z_HEROE;
   for (let i = 1; i < 4; i++) {
     const h = crearHeroe();
     h.colorAura = MULTI_COLORES[i]; h.ropa = ropaDe(MULTI_COLORES[i]);
@@ -1275,7 +1278,7 @@ export function multiIniciar() {
   // El héroe principal hace de jugador 1: se tiñe de rojo; al salir se restaura su aspecto.
   E.heroe.colorAura = MULTI_COLORES[0]; ponerSombrero(E.heroe); teñirHeroe(E.heroe, ropaDe(MULTI_COLORES[0]));
   E.heroe.aura.material.color.set(MULTI_COLORES[0]);
-  heroes.forEach((h, i) => { h.grupo.position.set(MULTI_X[i], 0, zh); h.caido = false; h.triste = 0; colorVarita(MULTI_COLORES[i], h); });
+  heroes.forEach((h, i) => { h.grupo.position.set(MULTI_X[i], 0, zh); h.grupo.visible = true; h.caido = false; h.levantando = false; h.triste = 0; colorVarita(MULTI_COLORES[i], h); });
   // Carriles: una tira de camino por jugador, con el color del jugador en los bordes; la textura se desliza con el mundo.
   const tiras = [], texs = [];
   if (E.caminoMesh) E.caminoMesh.visible = false;
@@ -1314,7 +1317,7 @@ export function multiTerminar() {
   if (E.caminoMesh) E.caminoMesh.visible = true;
   // El héroe principal vuelve a ser Lumi.
   const h = E.heroe;
-  h.grupo.position.set(0, 0, M.heroes[0].grupo.position.z); h.caido = false; h.levantando = false; h.triste = 0; h.salto = 0;
+  h.grupo.position.set(0, 0, Z_HEROE); h.grupo.visible = true; h.caido = false; h.levantando = false; h.triste = 0; h.salto = 0;
   if (h.acc) h.actual = reproducir(h.acc.quieto, h.actual, 0.1);
   teñirHeroe(h, ROPA_BASE); h.aspecto = null; // el aspecto (sombrero y aura) se vuelve a aplicar al entrar en el menú
   colorVarita('#ffe066', h);

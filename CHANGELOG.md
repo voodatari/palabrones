@@ -1,5 +1,11 @@
 # Cambios de ¡Palabrones!
 
+## v1.1.21 · 2026-11-25 · Multijugador por tiempo y con puntos como vida
+
+- Modo multijugador (experimental, con `?multi`): la partida dura **1, 2 o 3 minutos** (gana quien más puntos tiene al terminar) o es **infinita** (gana el último mago en pie). Hay un reloj arriba y los Palabrones salen sin parar, algo más seguidos según avanza la partida.
+- Ya no hay corazones: fallar una palabra, dejar que un Palabrón llegue o recibir un ataque **quita puntos** (100, 150 y 100). Todos empiezan con 300 puntos y el mago que llega a 0 muere.
+- El cuerpo de un mago caído se queda atrás: se va hacia la cámara con el camino hasta salir de la pantalla. Al final, los que siguen vivos van primero (por puntos) y después los que cayeron, el que aguantó más delante.
+
 ## v1.1.20 · 2026-11-25 · Modo multijugador experimental (4 en la pizarra)
 
 - Nuevo modo **multijugador de 4 jugadores para pizarra digital**, experimental y oculto: solo aparece si la dirección lleva `?multi` (por ejemplo `https://voodatari.github.io/palabrones/?multi`). Sin esa variable no existe ni se carga.

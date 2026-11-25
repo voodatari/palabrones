@@ -1,11 +1,11 @@
 // ¡Palabrones! · Interfaz: pantallas, menús, HUD, explicaciones, resultados y teclado.
-import * as E from './escena.js?v=1.1.20';
-import { J, empezar, lanzar, congelar, pausar, abandonar } from './juego.js?v=1.1.20';
-import * as Pr from './progreso.js?v=1.1.20';
-import { CATS, TRUCOS, MUNDOS, TIENDA, AVATARES, claveNivel } from './datos.js?v=1.1.20';
-import { iniciarAudio, musica, volumenes, sfx, precargarMusica } from './audio.js?v=1.1.20';
-import { decir, callar, activarVoz, desbloquearVoz } from './voz.js?v=1.1.20';
-import { dibujar as dibujarEtiquetas, limpiar as limpiarEtiquetas } from './etiquetas.js?v=1.1.20';
+import * as E from './escena.js?v=1.1.21';
+import { J, empezar, lanzar, congelar, pausar, abandonar } from './juego.js?v=1.1.21';
+import * as Pr from './progreso.js?v=1.1.21';
+import { CATS, TRUCOS, MUNDOS, TIENDA, AVATARES, claveNivel } from './datos.js?v=1.1.21';
+import { iniciarAudio, musica, volumenes, sfx, precargarMusica } from './audio.js?v=1.1.21';
+import { decir, callar, activarVoz, desbloquearVoz } from './voz.js?v=1.1.21';
+import { dibujar as dibujarEtiquetas, limpiar as limpiarEtiquetas } from './etiquetas.js?v=1.1.21';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -737,7 +737,7 @@ document.addEventListener('keydown', (e) => {
 // Para las pruebas automáticas.
 // Modo multijugador EXPERIMENTAL: solo existe si la dirección lleva «?multi» (se carga bajo demanda, no afecta al juego normal).
 if (/[?&]multi\b/.test(location.search)) {
-  import('./multi.js?v=1.1.20').then((mod) => {
+  import('./multi.js?v=1.1.21').then((mod) => {
     const mj = mod.montarMulti({ mostrar, irA, asegurarTema, ajustarTodo, restaurarAspecto });
     const b = document.createElement('button');
     b.id = 'b-multi'; b.className = 'btn btn-verde btn-mini'; b.innerHTML = '👥 Multijugador <small>experimental · 4 en pizarra</small>';

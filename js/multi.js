@@ -1,17 +1,20 @@
 // ¡Palabrones! · Modo multijugador EXPERIMENTAL: 4 jugadores a lo ancho de una pizarra digital.
 // Solo existe si la dirección lleva «?multi» (main.js carga este módulo únicamente en ese caso).
 // Reglas: los cuatro magos tienen su carril y reciben LOS MISMOS Palabrones a la vez. Cada uno responde con sus 3 botones (los de su
-// columna). Acertar da puntos (más cuanto antes, +50 al primero en acertar cada palabra, +10 por racha); fallar o dejar que el
-// Palabrón llegue quita un corazón. Gana quien más puntos tiene al final; quien se queda sin corazones queda eliminado.
+// columna). Acertar da puntos (más cuanto antes, +50 al primero en acertar cada palabra, +10 por racha). No hay corazones: fallar,
+// dejar que el Palabrón llegue o recibir un ataque QUITA PUNTOS, y el mago que se queda sin puntos muere (su cuerpo se queda atrás,
+// el camino sigue sin él). La partida dura 1, 2 o 3 minutos (gana quien más puntos tiene) o es infinita (gana el último en pie).
 // Competencia: cada acierto carga el ATAQUE (⚡). Con 3 cargas se lanza un obstáculo a un rival: niebla (no deja leer las palabras),
 // pegajoso (bloquea sus botones un momento), Palabrón extra en su carril o aceleración de sus Palabrones.
-import * as E from './escena.js?v=1.1.20';
-import { sfx, musica } from './audio.js?v=1.1.20';
-import { CATS, MUNDOS } from './datos.js?v=1.1.20';
-import { generadorMulti } from './juego.js?v=1.1.20';
-import { decir, callar } from './voz.js?v=1.1.20';
+import * as E from './escena.js?v=1.1.21';
+import { sfx, musica } from './audio.js?v=1.1.21';
+import { CATS, MUNDOS } from './datos.js?v=1.1.21';
+import { generadorMulti } from './juego.js?v=1.1.21';
+import { decir, callar } from './voz.js?v=1.1.21';
 
-const Z_LLEGADA = -2.2, Z_SALIDA = -32, VIDAS = 3;
+const Z_LLEGADA = -2.2, Z_SALIDA = -32;
+const PUNTOS_INICIO = 300;   // los puntos hacen de «vida»: a 0 el mago muere
+const PENAL = { fallo: 100, llega: 150, ataque: 100 }; // puntos que se pierden
 const VELOCIDADES = { suave: { vel: 2.0, cada: 7.0 }, normal: { vel: 2.7, cada: 5.4 }, rapida: { vel: 3.5, cada: 4.2 } };
 const NOMBRES = ['Rojo', 'Azul', 'Verde', 'Amarillo'];
 const AVATARES = ['🦊', '🐙', '🐸', '🐯'];
@@ -27,7 +30,7 @@ const OBSTACULOS = {
   rapido: { icono: '💨', nombre: 'ACELERÓN', seg: 6 },
 };
 
-const M = { activo: false, fase: '', cfg: { mundo: 0, n: 15, vel: 'normal' }, jugadores: [], monstruos: [], t: 0, sig: 0, lanzados: 0, gen: null, id: 1000, cuenta: 0, ctx: null, ult: -1 };
+const M = { activo: false, fase: '', cfg: { mundo: 0, min: 2, vel: 'normal' }, jugadores: [], monstruos: [], t: 0, sig: 0, lanzados: 0, gen: null, id: 1000, cuenta: 0, ctx: null, ult: -1 };
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
 const clamp01 = (x) => Math.max(0, Math.min(1, x));
@@ -37,7 +40,7 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 function crearPantallas() {
   const columnas = [0, 1, 2, 3].map((i) => `
     <div class="mj-col" data-p="${i}" style="--c:${E.MULTI_COLORES[i]}">
-      <div class="mj-cab"><span class="mj-av">${AVATARES[i]}</span><b class="mj-nombre"></b><span class="mj-vidas"></span><span class="mj-puntos">0</span></div>
+      <div class="mj-cab"><span class="mj-av">${AVATARES[i]}</span><b class="mj-nombre"></b><span class="mj-puntos">0</span></div>
       <div class="mj-msg"></div>
       <div class="mj-ataque"><div class="mj-rivales"></div><button class="mj-atk" data-p="${i}"><b>⚡ ¡ATAQUE!</b><span class="mj-pips"></span></button></div>
       <div class="mj-botones">${CATEGORIAS.map((c) => `<button class="mj-b" data-p="${i}" data-cat="${c}" style="--k:${CATS[c].color};--ko:${CATS[c].oscuro}"><b>${CATS[c].nombre}</b><small>${CATS[c].lema}</small></button>`).join('')}</div>
@@ -49,15 +52,16 @@ function crearPantallas() {
       <p id="mj-aviso" class="mj-aviso oculto"></p>
       <div class="mj-nombres">${[0, 1, 2, 3].map((i) => `<label style="--c:${E.MULTI_COLORES[i]}"><i>${AVATARES[i]}</i><input class="entrada" maxlength="12" value="${NOMBRES[i]}" data-p="${i}" aria-label="Nombre del jugador ${i + 1}"></label>`).join('')}</div>
       <div class="mj-fila"><b>Mundo</b><div class="segmentos" id="mj-mundos">${MUNDOS.map((m, i) => `<button data-v="${i}">${esc(m.nombre.split(' ')[0])}</button>`).join('')}</div></div>
-      <div class="mj-fila"><b>Palabras</b><div class="segmentos" id="mj-n">${[10, 15, 20].map((n) => `<button data-v="${n}">${n}</button>`).join('')}</div></div>
+      <div class="mj-fila"><b>Duración</b><div class="segmentos" id="mj-min"><button data-v="1">1 min</button><button data-v="2">2 min</button><button data-v="3">3 min</button><button data-v="0">Infinito ∞</button></div></div>
       <div class="mj-fila"><b>Velocidad</b><div class="segmentos" id="mj-vel"><button data-v="suave">Suave</button><button data-v="normal">Normal</button><button data-v="rapida">Rápida</button></div></div>
-      <p class="nota">Cada jugador toca los 3 botones de su columna. Aparecen las mismas palabras a la vez para los cuatro: ¡gana quien más puntos consiga!<br>Cada acierto carga el ⚡ ATAQUE: con 3 cargas lanzas un obstáculo a un rival (¡toca su avatar para elegirlo!).<br>Teclado (pruebas): A S D (ataque W) · F G H (T) · J K L (I) · ← ↓ → (↑)</p>
+      <p class="nota">Cada jugador toca los 3 botones de su columna. Aparecen las mismas palabras a la vez para los cuatro: ¡gana quien más puntos consiga!<br>Fallar, dejar pasar a un Palabrón o recibir un ataque <b>resta puntos</b>; con 0 puntos el mago cae y se queda atrás. En «Infinito» gana el último en pie.<br>Cada acierto carga el ⚡ ATAQUE: con 3 cargas lanzas un obstáculo a un rival (¡toca su avatar para elegirlo!).<br>Teclado (pruebas): A S D (ataque W) · F G H (T) · J K L (I) · ← ↓ → (↑)</p>
       <div class="fila-botones"><button id="mj-volver" class="btn btn-gris">Volver</button><button id="mj-jugar" class="btn btn-oro btn-grande">¡A jugar!</button></div>
     </div>
   </section>
   <section id="p-multi" class="pantalla">
     <div class="mj-cols">${columnas}</div>
     <button id="mj-salir" class="mj-salir" aria-label="Salir">✕</button>
+    <div id="mj-tiempo" class="mj-tiempo"></div>
     <div id="mj-banner" class="mj-banner"></div>
     <div id="mj-cuenta" class="mj-cuenta"></div>
   </section>
@@ -71,6 +75,7 @@ function crearPantallas() {
   document.body.insertAdjacentHTML('beforeend', html);
 }
 
+const reloj = (s) => { s = Math.max(0, Math.ceil(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
 function pizarraValida() { return innerWidth >= 1000 && innerWidth / innerHeight >= 1.3; }
 
 // ---------- configuración ----------
@@ -80,11 +85,11 @@ function abrirConfig() {
   av.classList.toggle('oculto', ok);
   av.textContent = ok ? '' : 'El modo multijugador está pensado para pizarras digitales (pantalla grande y en horizontal). Aquí no está disponible.';
   $('#mj-jugar').disabled = !ok;
-  marcar('#mj-mundos', M.cfg.mundo); marcar('#mj-n', M.cfg.n); marcar('#mj-vel', M.cfg.vel);
+  marcar('#mj-mundos', M.cfg.mundo); marcar('#mj-min', M.cfg.min); marcar('#mj-vel', M.cfg.vel);
   M.ctx.mostrar('p-multi-config');
 }
 function montarConfig() {
-  for (const [id, campo, num] of [['#mj-mundos', 'mundo', true], ['#mj-n', 'n', true], ['#mj-vel', 'vel', false]]) {
+  for (const [id, campo, num] of [['#mj-mundos', 'mundo', true], ['#mj-min', 'min', true], ['#mj-vel', 'vel', false]]) {
     $(id).addEventListener('click', (e) => {
       const b = e.target.closest('button'); if (!b) return;
       sfx.click(); M.cfg[campo] = num ? +b.dataset.v : b.dataset.v; marcar(id, M.cfg[campo]);
@@ -107,8 +112,9 @@ async function empezar() {
   E.quitarTodos();
   E.multiIniciar();
   const nombres = $$('.mj-nombres input').map((inp, i) => (inp.value.trim() || NOMBRES[i]).slice(0, 12));
-  M.jugadores = nombres.map((nombre, i) => ({ i, nombre, vidas: VIDAS, puntos: 0, aciertos: 0, fallos: 0, combo: 0, vivo: true, msgT: 0, carga: 0, niebla: 0, bloq: 0, acel: 0, elegir: 0 }));
-  Object.assign(M, { activo: true, fase: 'cuenta', monstruos: [], t: 0, sig: 1.2, lanzados: 0, gen: generadorMulti([1, 2]), cuenta: 3.4, ult: -1 });
+  M.jugadores = nombres.map((nombre, i) => ({ i, nombre, puntos: PUNTOS_INICIO, aciertos: 0, fallos: 0, combo: 0, vivo: true, murio: 0, msgT: 0, carga: 0, niebla: 0, bloq: 0, acel: 0, elegir: 0 }));
+  Object.assign(M, { activo: true, fase: 'cuenta', monstruos: [], t: 0, sig: 1.2, lanzados: 0, gen: generadorMulti([1, 2]), cuenta: 3.4, ult: -1, duracion: M.cfg.min > 0 ? M.cfg.min * 60 : Infinity, bannerT: 0 });
+  $('#mj-tiempo').textContent = M.cfg.min > 0 ? reloj(M.duracion) : '∞';
   const v = VELOCIDADES[M.cfg.vel];
   E.default.avance = Math.max(0.5, v.vel - 1);
   for (const col of $$('.mj-col')) { const i = +col.dataset.p; col.classList.remove('fuera', 'niebla', 'pegado', 'listo'); col.querySelector('.mj-nombre').textContent = nombres[i]; col.querySelector('.mj-rivales').textContent = ''; }
@@ -168,7 +174,9 @@ function actualizar(dt, real) {
   const v = VELOCIDADES[M.cfg.vel];
   M.t += dt;
   M.sig -= dt;
-  if (M.sig <= 0 && M.lanzados < M.cfg.n) { salida(); M.sig = v.cada * (0.9 + Math.random() * 0.2); }
+  // Salen Palabrones sin parar, algo más seguidos según avanza la partida.
+  if (M.sig <= 0) { salida(); M.sig = v.cada * Math.max(0.55, 1 - M.t / 300) * (0.9 + Math.random() * 0.2); }
+  if (M.duracion !== Infinity) { const resto = M.duracion - M.t; const txt = reloj(resto); const el = $('#mj-tiempo'); if (el.textContent !== txt) el.textContent = txt; el.classList.toggle('poco', resto <= 10); }
   for (const m of M.monstruos) {
     if (!m.vivo) continue;
     m.z += v.vel * dt * (M.jugadores[m.p].acel > 0 ? 1.8 : 1);
@@ -186,9 +194,9 @@ function actualizar(dt, real) {
     if (j.elegir > 0) { j.elegir -= real; if (j.elegir <= 0) { j.elegir = 0; if (j.vivo) lanzarAtaque(j.i, lider(j.i)); } }
   }
   if (M.bannerT > 0) { M.bannerT -= real; if (M.bannerT <= 0) $('#mj-banner').classList.remove('visible'); }
-  const quedan = M.monstruos.some((m) => m.vivo);
   const vivos = M.jugadores.filter((j) => j.vivo);
-  if ((M.lanzados >= M.cfg.n && !quedan) || vivos.length <= 1) terminar();
+  if (M.t >= M.duracion) terminar('tiempo');
+  else if (vivos.length <= 1) terminar('ultimo');
 }
 
 // ---------- respuestas ----------
@@ -228,7 +236,7 @@ function resolver(m, cat) {
     m.vivo = false;
     j.fallos++; j.combo = 0;
     E.burla(m.id); sfx.burla(); setTimeout(() => E.alcanza(m.id), 350);
-    perderVida(j, `Era un ${CATS[m.item.it.cat].nombre.toLowerCase()}`);
+    penalizar(j, PENAL.fallo, `Era un ${CATS[m.item.it.cat].nombre.toLowerCase()}`);
   }
 }
 
@@ -236,26 +244,29 @@ function llega(m) {
   m.vivo = false;
   const j = M.jugadores[m.p];
   E.alcanza(m.id);
-  if (j.vivo) { j.combo = 0; j.fallos++; perderVida(j, '¡Te alcanzó!'); }
+  if (j.vivo) { j.combo = 0; j.fallos++; penalizar(j, PENAL.llega, '¡Te alcanzó!'); }
 }
 
-function perderVida(j, msg) {
-  j.vidas--;
+// Quita puntos (no vidas). Con 0 puntos el mago muere.
+function penalizar(j, pts, msg) {
+  j.puntos = Math.max(0, j.puntos - pts);
   E.heroeHerido(E.multiHeroe(j.i));
   sfx.fallo();
-  mensaje(j.i, msg, 1.6);
-  if (j.vidas <= 0) eliminar(j);
+  mensaje(j.i, msg + ' −' + pts, 1.6);
+  const r = $('.mj-col[data-p="' + j.i + '"]').getBoundingClientRect();
+  popup(r.left + r.width / 2, innerHeight * 0.5, '−' + pts, '', '#ef4444');
+  if (j.puntos <= 0) eliminar(j);
   pintarHud();
 }
 
 function eliminar(j) {
-  j.vivo = false;
+  j.vivo = false; j.murio = M.t;
   E.entristecer(E.multiHeroe(j.i));
   for (const m of M.monstruos) if (m.p === j.i && m.vivo) { m.vivo = false; E.quitarMonstruoId(m.id); }
   E.multiObjetivo(j.i, null);
   j.niebla = j.bloq = j.acel = j.elegir = 0; efectoCols(j);
   $(`.mj-col[data-p="${j.i}"] .mj-rivales`).textContent = '';
-  mensaje(j.i, '¡Eliminado!', 99);
+  mensaje(j.i, '💀 ¡Sin puntos!', 99);
   $(`.mj-col[data-p="${j.i}"]`).classList.add('fuera');
 }
 
@@ -288,12 +299,14 @@ function aplicarObstaculo(t, tipo, de) {
   const j = M.jugadores[t], o = OBSTACULOS[tipo];
   if (!j.vivo) return;
   E.temblor(0.2);
+  M.jugadores[de].aciertos += 0;
+  penalizar(j, PENAL.ataque, o.icono + ' ' + o.nombre);
+  if (!j.vivo) return;
   if (tipo === 'extra') { salidaExtra(j); sfx.rugido(); }
   else {
     j[{ niebla: 'niebla', pegajoso: 'bloq', rapido: 'acel' }[tipo]] = o.seg; efectoCols(j);
     if (tipo === 'niebla') sfx.congelar(); else if (tipo === 'rapido') sfx.oleada(); else sfx.fallo();
   }
-  mensaje(t, o.icono + ' ' + o.nombre, 2);
   banner(o.icono + ' ¡' + M.jugadores[de].nombre + ' lanza ' + o.nombre + ' a ' + j.nombre + '!', E.MULTI_COLORES[de]);
 }
 // Palabrón extra solo en el carril del rival.
@@ -323,7 +336,6 @@ function mensaje(p, texto, seg = 0) {
 function pintarHud() {
   for (const j of M.jugadores) {
     const col = $(`.mj-col[data-p="${j.i}"]`);
-    col.querySelector('.mj-vidas').textContent = '❤'.repeat(Math.max(0, j.vidas)) + '🖤'.repeat(VIDAS - Math.max(0, j.vidas));
     col.querySelector('.mj-puntos').textContent = j.puntos.toLocaleString('es-ES');
     col.querySelector('.mj-pips').textContent = '●'.repeat(j.carga) + '○'.repeat(CARGA_MAX - j.carga);
     col.classList.toggle('listo', j.vivo && j.carga >= CARGA_MAX);
@@ -339,22 +351,22 @@ function popup(x, y, texto, extra, color) {
 }
 
 // ---------- final ----------
-function terminar() {
+function terminar(motivo) {
   if (M.fase === 'fin') return;
   M.fase = 'fin';
+  if (motivo === 'tiempo') { banner('⏱ ¡Se acabó el tiempo!', '#7c3aed'); sfx.cuenta(0); }
   E.quitarTodos();
   E.multiObjetivo(0, null); E.multiObjetivo(1, null); E.multiObjetivo(2, null); E.multiObjetivo(3, null);
-  const vivos = M.jugadores.filter((j) => j.vivo);
-  if (vivos.length === 1 && M.jugadores.length > 1) vivos[0].puntos += 300; // último en pie
   pintarHud();
-  const orden = M.jugadores.slice().sort((a, b) => b.puntos - a.puntos || b.aciertos - a.aciertos || b.vidas - a.vidas);
+  // Primero los que siguen vivos (por puntos); después los que han muerto, el que aguantó más delante.
+  const orden = M.jugadores.slice().sort((a, b) => (b.vivo - a.vivo) || (a.vivo ? b.puntos - a.puntos || b.aciertos - a.aciertos : b.murio - a.murio));
   const ganador = orden[0];
-  const empate = orden.filter((j) => j.puntos === ganador.puntos).length > 1;
+  const empate = ganador.vivo && orden.filter((j) => j.vivo && j.puntos === ganador.puntos).length > 1;
   setTimeout(() => {
     if (!M.activo || M.fase !== 'fin') return;
     const medallas = ['🥇', '🥈', '🥉', '4.º'];
     $('#mj-fin-titulo').textContent = empate ? '¡Empate!' : `¡Gana ${ganador.nombre}!`;
-    $('#mj-podio').innerHTML = orden.map((j, k) => `<li style="--c:${E.MULTI_COLORES[j.i]}"><span class="mj-med">${medallas[k]}</span><i>${AVATARES[j.i]}</i><b>${esc(j.nombre)}</b><span class="mj-pts">${j.puntos.toLocaleString('es-ES')}</span><small>${j.aciertos} ✔ · ${j.fallos} ✘${j.vivo ? '' : ' · eliminado'}</small></li>`).join('');
+    $('#mj-podio').innerHTML = orden.map((j, k) => `<li style="--c:${E.MULTI_COLORES[j.i]}"><span class="mj-med">${medallas[k]}</span><i>${AVATARES[j.i]}</i><b>${esc(j.nombre)}</b><span class="mj-pts">${j.puntos.toLocaleString('es-ES')}</span><small>${j.aciertos} ✔ · ${j.fallos} ✘${j.vivo ? '' : ' · cayó en el segundo ' + Math.round(j.murio)}</small></li>`).join('');
     M.ctx.mostrar('p-multi-fin');
     E.vista('multi', true);
     E.fiesta(true, E.multiHeroe(ganador.i));

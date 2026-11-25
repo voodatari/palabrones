@@ -581,7 +581,7 @@ html.vertical .final-titulo { font-size: 2.1rem; }
 .mj-pop small { display: block; font-size: 0.5em; color: #ffe066; }
 @keyframes mjSube { from { opacity: 1; transform: translate(-50%, -30%) scale(0.7); } 20% { transform: translate(-50%, -60%) scale(1.15); } to { opacity: 0; transform: translate(-50%, -190%) scale(1); } }
 .mj-cuenta { position: absolute; left: 0; right: 0; top: 24%; text-align: center; font-family: var(--fuente-t); font-size: 9rem; line-height: 1; color: #fff; text-shadow: 0 0.06em 0 rgba(0, 0, 0, 0.4), 0 0 0.4em rgba(255, 201, 51, 0.8); pointer-events: none; z-index: 6; }
-.mj-banner { position: absolute; z-index: 6; left: 50%; top: calc(3.6rem + var(--seg-arriba)); transform: translateX(-50%) scale(0.9); opacity: 0; background: var(--c, #7c3aed); color: #fff; font-family: var(--fuente-t); font-size: 1.5rem; padding: 0.4rem 1.3rem; border-radius: 1.4rem; border: 0.2rem solid #fff; white-space: nowrap; pointer-events: none; transition: opacity 0.2s, transform 0.2s; box-shadow: 0 0.3rem 0 rgba(0, 0, 0, 0.35); text-shadow: 0 0.08em 0 rgba(0, 0, 0, 0.35); }
+.mj-banner { position: absolute; z-index: 6; left: 50%; top: calc(5.6rem + var(--seg-arriba)); transform: translateX(-50%) scale(0.9); opacity: 0; background: var(--c, #7c3aed); color: #fff; font-family: var(--fuente-t); font-size: 1.5rem; padding: 0.4rem 1.3rem; border-radius: 1.4rem; border: 0.2rem solid #fff; white-space: nowrap; pointer-events: none; transition: opacity 0.2s, transform 0.2s; box-shadow: 0 0.3rem 0 rgba(0, 0, 0, 0.35); text-shadow: 0 0.08em 0 rgba(0, 0, 0, 0.35); }
 .mj-banner.visible { opacity: 1; transform: translateX(-50%) scale(1); }
 .mj-salir { position: absolute; z-index: 7; left: 50%; top: calc(0.3rem + var(--seg-arriba)); transform: translateX(-50%); width: 2.2rem; height: 2.2rem; border-radius: 50%; border: 0.12rem solid rgba(255, 255, 255, 0.5); background: rgba(0, 0, 0, 0.5); color: #fff; font-size: 1rem; cursor: pointer; }
 #p-multi-fin { background: transparent; align-items: center; justify-content: flex-start; }
@@ -593,3 +593,6 @@ html.vertical .final-titulo { font-size: 2.1rem; }
 .mj-podio b { font-family: var(--fuente-t); font-weight: 400; font-size: 1.3rem; }
 .mj-podio .mj-pts { font-family: var(--fuente-t); font-size: 1.5rem; color: var(--oro); }
 .mj-podio small { grid-column: 3 / -1; opacity: 0.85; font-size: 0.8rem; }
+
+.mj-tiempo { position: absolute; z-index: 7; left: 50%; top: calc(2.8rem + var(--seg-arriba)); transform: translateX(-50%); background: rgba(0, 0, 0, 0.55); color: #fff; font-family: var(--fuente-t); font-size: 1.4rem; line-height: 1.2; padding: 0.05rem 0.9rem; border-radius: 1rem; border: 0.12rem solid rgba(255, 255, 255, 0.4); pointer-events: none; }
+.mj-tiempo.poco { background: #ef4444; animation: pulso 0.5s ease-in-out infinite; }
