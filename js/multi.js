@@ -6,11 +6,11 @@
 // el camino sigue sin él). La partida dura 1, 2 o 3 minutos (gana quien más puntos tiene) o es infinita (gana el último en pie).
 // Competencia: cada acierto carga el ATAQUE (⚡). Con 3 cargas se lanza un obstáculo a un rival: niebla (no deja leer las palabras),
 // pegajoso (bloquea sus botones un momento), Palabrón extra en su carril o aceleración de sus Palabrones.
-import * as E from './escena.js?v=1.1.21';
-import { sfx, musica } from './audio.js?v=1.1.21';
-import { CATS, MUNDOS } from './datos.js?v=1.1.21';
-import { generadorMulti } from './juego.js?v=1.1.21';
-import { decir, callar } from './voz.js?v=1.1.21';
+import * as E from './escena.js?v=1.1.22';
+import { sfx, musica } from './audio.js?v=1.1.22';
+import { CATS, MUNDOS } from './datos.js?v=1.1.22';
+import { generadorMulti } from './juego.js?v=1.1.22';
+import { decir, callar } from './voz.js?v=1.1.22';
 
 const Z_LLEGADA = -2.2, Z_SALIDA = -32;
 const PUNTOS_INICIO = 300;   // los puntos hacen de «vida»: a 0 el mago muere
@@ -54,7 +54,7 @@ function crearPantallas() {
       <div class="mj-fila"><b>Mundo</b><div class="segmentos" id="mj-mundos">${MUNDOS.map((m, i) => `<button data-v="${i}">${esc(m.nombre.split(' ')[0])}</button>`).join('')}</div></div>
       <div class="mj-fila"><b>Duración</b><div class="segmentos" id="mj-min"><button data-v="1">1 min</button><button data-v="2">2 min</button><button data-v="3">3 min</button><button data-v="0">Infinito ∞</button></div></div>
       <div class="mj-fila"><b>Velocidad</b><div class="segmentos" id="mj-vel"><button data-v="suave">Suave</button><button data-v="normal">Normal</button><button data-v="rapida">Rápida</button></div></div>
-      <p class="nota">Cada jugador toca los 3 botones de su columna. Aparecen las mismas palabras a la vez para los cuatro: ¡gana quien más puntos consiga!<br>Fallar, dejar pasar a un Palabrón o recibir un ataque <b>resta puntos</b>; con 0 puntos el mago cae y se queda atrás. En «Infinito» gana el último en pie.<br>Cada acierto carga el ⚡ ATAQUE: con 3 cargas lanzas un obstáculo a un rival (¡toca su avatar para elegirlo!).<br>Teclado (pruebas): A S D (ataque W) · F G H (T) · J K L (I) · ← ↓ → (↑)</p>
+      <p class="nota">Cada jugador toca los 3 botones de su columna. Aparecen las mismas palabras a la vez para los cuatro: ¡gana quien más puntos consiga!<br>Fallar, dejar pasar a un Palabrón o recibir un ataque <b>resta puntos</b>; con tiempo nadie muere: gana quien tenga más puntos al acabar. En «Infinito» el mago que llega a 0 puntos cae y se queda atrás; gana el último en pie.<br>Cada acierto carga el ⚡ ATAQUE: con 3 cargas lanzas un obstáculo a un rival (¡toca su avatar para elegirlo!).<br>Teclado (pruebas): A S D (ataque W) · F G H (T) · J K L (I) · ← ↓ → (↑)</p>
       <div class="fila-botones"><button id="mj-volver" class="btn btn-gris">Volver</button><button id="mj-jugar" class="btn btn-oro btn-grande">¡A jugar!</button></div>
     </div>
   </section>
@@ -255,7 +255,7 @@ function penalizar(j, pts, msg) {
   mensaje(j.i, msg + ' −' + pts, 1.6);
   const r = $('.mj-col[data-p="' + j.i + '"]').getBoundingClientRect();
   popup(r.left + r.width / 2, innerHeight * 0.5, '−' + pts, '', '#ef4444');
-  if (j.puntos <= 0) eliminar(j);
+  if (j.puntos <= 0 && M.cfg.min === 0) eliminar(j); // solo en «Infinito» se muere; con tiempo gana quien más puntos tenga al final
   pintarHud();
 }
 

@@ -1,5 +1,5 @@
 // ¡Palabrones! · Voz del navegador (Web Speech). Lee las explicaciones; baja la música mientras habla.
-import { atenuar } from './audio.js?v=1.1.21';
+import { atenuar } from './audio.js?v=1.1.22';
 
 const V = { activa: true, voz: null, desbloqueada: false, hablando: false };
 const sintesis = window.speechSynthesis || null;

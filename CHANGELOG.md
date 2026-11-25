@@ -1,5 +1,9 @@
 # Cambios de ¡Palabrones!
 
+## v1.1.22 · 2026-11-25 · Multijugador con tiempo: nadie muere
+
+- En las partidas de 1, 2 o 3 minutos del modo multijugador ya no se muere: los puntos nunca bajan de 0 y gana quien más puntos tenga al terminar el reloj. Solo en «Infinito» el mago que llega a 0 puntos cae y se queda atrás (gana el último en pie).
+
 ## v1.1.21 · 2026-11-25 · Multijugador por tiempo y con puntos como vida
 
 - Modo multijugador (experimental, con `?multi`): la partida dura **1, 2 o 3 minutos** (gana quien más puntos tiene al terminar) o es **infinita** (gana el último mago en pie). Hay un reloj arriba y los Palabrones salen sin parar, algo más seguidos según avanza la partida.
