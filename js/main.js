@@ -1,11 +1,11 @@
 // ¡Palabrones! · Interfaz: pantallas, menús, HUD, explicaciones, resultados y teclado.
-import * as E from './escena.js?v=1.1.23';
-import { J, empezar, lanzar, congelar, pausar, abandonar } from './juego.js?v=1.1.23';
-import * as Pr from './progreso.js?v=1.1.23';
-import { CATS, TRUCOS, MUNDOS, TIENDA, AVATARES, claveNivel } from './datos.js?v=1.1.23';
-import { iniciarAudio, musica, volumenes, sfx, precargarMusica } from './audio.js?v=1.1.23';
-import { decir, callar, activarVoz, desbloquearVoz } from './voz.js?v=1.1.23';
-import { dibujar as dibujarEtiquetas, limpiar as limpiarEtiquetas } from './etiquetas.js?v=1.1.23';
+import * as E from './escena.js?v=1.1.24';
+import { J, empezar, lanzar, congelar, pausar, abandonar } from './juego.js?v=1.1.24';
+import * as Pr from './progreso.js?v=1.1.24';
+import { CATS, TRUCOS, MUNDOS, TIENDA, AVATARES, claveNivel } from './datos.js?v=1.1.24';
+import { iniciarAudio, musica, volumenes, sfx, precargarMusica } from './audio.js?v=1.1.24';
+import { decir, callar, activarVoz, desbloquearVoz } from './voz.js?v=1.1.24';
+import { dibujar as dibujarEtiquetas, limpiar as limpiarEtiquetas } from './etiquetas.js?v=1.1.24';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -743,7 +743,7 @@ document.addEventListener('keydown', (e) => {
   b.addEventListener('click', async () => {
     sfx.click();
     try {
-      if (!mj) { const mod = await import('./multi.js?v=1.1.23'); mj = mod.montarMulti({ mostrar, irA, asegurarTema, ajustarTodo, restaurarAspecto }); }
+      if (!mj) { const mod = await import('./multi.js?v=1.1.24'); mj = mod.montarMulti({ mostrar, irA, asegurarTema, ajustarTodo, restaurarAspecto }); }
       mj.abrir();
     } catch (err) { console.warn('multijugador no disponible', err); }
   });

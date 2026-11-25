@@ -2,7 +2,7 @@
 // Personajes, monstruos y decorado son modelos GLB de Quaternius (CC0), en web/modelos.
 // El estado del juego vive en juego.js; aquí solo se dibuja (las mallas son una «vista»).
 
-import * as THREE from './lib/three.module.js?v=1.1.23';
+import * as THREE from './lib/three.module.js?v=1.1.24';
 import { GLTFLoader } from './lib/addons/loaders/GLTFLoader.js';
 import { clone as clonarEsqueleto } from './lib/addons/utils/SkeletonUtils.js';
 import { mergeGeometries } from './lib/addons/utils/BufferGeometryUtils.js';
@@ -246,7 +246,7 @@ const MODELOS = new Map();
 const ALTURAS = new Map();
 export function cargar(nombre) {
   if (!MODELOS.has(nombre)) {
-    MODELOS.set(nombre, new Promise((ok, mal) => cargador.load(`modelos/${nombre}.glb?v=1.1.23`, ok, undefined, mal)).catch((e) => { console.warn('modelo', nombre, e); return null; }));
+    MODELOS.set(nombre, new Promise((ok, mal) => cargador.load(`modelos/${nombre}.glb?v=1.1.24`, ok, undefined, mal)).catch((e) => { console.warn('modelo', nombre, e); return null; }));
   }
   return MODELOS.get(nombre);
 }
@@ -1330,6 +1330,21 @@ export function multiTerminar() {
   fiesta(false);
   ocultarDecorado(false);
   ajustarTamano(); // vuelve la resolución normal
+}
+// Contorno en pantalla (px) del «volumen» del carril i (de la salida hasta justo delante de la llegada, hasta la altura de las
+// etiquetas): sirve para que la niebla tape exactamente el carril, con su perspectiva, y no un rectángulo.
+const _vP = new THREE.Vector3();
+export function multiContornoCarril(i, alto = 8, zCerca = -3.2) {
+  const x = MULTI_X[i], pts = [];
+  for (const y of [0, alto]) for (const dx of y ? [-4.6, 4.6] : [-3.0, 3.0]) for (const z of [-45, zCerca]) {
+    _vP.set(x + dx, y, z).project(E.camara);
+    pts.push([(_vP.x * 0.5 + 0.5) * innerWidth, (-_vP.y * 0.5 + 0.5) * innerHeight]);
+  }
+  // envolvente convexa (cadena monótona)
+  pts.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const cruz = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const mitad = (lista) => { const h = []; for (const p of lista) { while (h.length >= 2 && cruz(h[h.length - 2], h[h.length - 1], p) <= 0) h.pop(); h.push(p); } h.pop(); return h; };
+  return mitad(pts).concat(mitad(pts.slice().reverse()));
 }
 export function multiHeroe(i) { return E.multi ? E.multi.heroes[i] : E.heroe; }
 // Objetivo (Palabrón al que apunta) de cada jugador: se marca con su anillo y su etiqueta destacada.

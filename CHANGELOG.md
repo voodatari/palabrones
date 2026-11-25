@@ -1,5 +1,9 @@
 # Cambios de ¡Palabrones!
 
+## v1.1.24 · 2026-11-25 · Niebla del multijugador con la forma del carril
+
+- El ataque de **niebla** ya no tapa un rectángulo: se calcula proyectando el carril 3D del jugador afectado, así que la niebla sigue la perspectiva del carril (se estrecha hacia el fondo), cubre las palabras de sus Palabrones y deja visible a su mago.
+
 ## v1.1.23 · 2026-11-25 · Multijugador siempre disponible y más ligero
 
 - El botón **Multijugador** ya aparece siempre en el menú (no hace falta `?multi`). El módulo se descarga solo al pulsarlo, así que el juego normal no pesa más. Sigue exigiendo pantalla grande en horizontal.

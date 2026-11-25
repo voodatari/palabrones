@@ -7,8 +7,8 @@
 //  3. Las demás se apartan hacia arriba para no pisarse; si no caben o se alejarían demasiado, se ocultan.
 //  4. Nada se pone sobre el panel de la pregunta (se respeta su borde inferior).
 //  5. Los monstruos lejanos no llevan etiqueta hasta que están a una distancia en la que se pueda leer.
-import * as THREE from './lib/three.module.js?v=1.1.23';
-import E from './escena.js?v=1.1.23';
+import * as THREE from './lib/three.module.js?v=1.1.24';
+import E from './escena.js?v=1.1.24';
 
 const Z_VISIBLE = -33;       // a partir de aquí (más cerca de Lumi) los no-objetivo ya enseñan su palabra
 const HUECO = 6;             // píxeles entre la cabeza y la etiqueta
